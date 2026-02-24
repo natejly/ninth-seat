@@ -1,9 +1,46 @@
 import os
+from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
+
+def _load_local_env() -> None:
+    env_path = Path(__file__).resolve().parent / ".env"
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key:
+            continue
+
+        value = value.strip()
+        if (
+            len(value) >= 2
+            and value[0] == value[-1]
+            and value[0] in {'"', "'"}
+        ):
+            value = value[1:-1]
+
+        os.environ.setdefault(key, value)
+
+
+_load_local_env()
+
+try:
+    from backend.workflow_planner import generate_workflow_plan
+except ModuleNotFoundError as exc:
+    if exc.name != "backend":
+        raise
+    from workflow_planner import generate_workflow_plan
 
 
 def _parse_origins(raw: str) -> list[str]:
@@ -19,6 +56,10 @@ FRONTEND_ORIGINS = _parse_origins(
 
 class LoginRequest(BaseModel):
     password: str
+
+
+class WorkflowPlanRequest(BaseModel):
+    task: str
 
 
 def _is_authenticated(request: Request) -> bool:
@@ -72,7 +113,28 @@ def home(request: Request) -> dict[str, str]:
             detail="Not authenticated",
         )
 
-    return {"message": "nothing here yet"}
+    return {"message": "Describe a task to generate an agent workflow DAG."}
+
+
+@router.post("/workflow/plan")
+def workflow_plan(payload: WorkflowPlanRequest, request: Request) -> dict[str, Any]:
+    if not _is_authenticated(request):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    try:
+        return generate_workflow_plan(payload.task)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate workflow: {exc}",
+        ) from exc
 
 
 def create_app(*, api_prefixes: tuple[str, ...] = ("/api",)) -> FastAPI:
