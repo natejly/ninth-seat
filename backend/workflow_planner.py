@@ -38,10 +38,34 @@ class WorkflowEdge(BaseModel):
     handoff: str = Field(default="", description="Short description of what is passed")
 
 
+class WorkflowInputModule(BaseModel):
+    name: str = Field(description="User-facing input name")
+    type: str = Field(
+        default="user_input",
+        description=(
+            "Input module type. Prefer one of: user_input, long_text, file_upload, url, number, "
+            "boolean, choice, json"
+        ),
+    )
+    required: bool = Field(default=True, description="Whether the input is required before a run starts")
+    description: str = Field(default="", description="What the user should provide for this input")
+
+
+class WorkflowDeliverableSpec(BaseModel):
+    name: str = Field(description="User-facing deliverable name")
+    type: str = Field(
+        default="text",
+        description="Deliverable type. Prefer one of: text, markdown, file, json, csv, pdf, code_bundle",
+    )
+    description: str = Field(default="", description="What the workflow should produce")
+
+
 class WorkflowPlan(BaseModel):
     summary: str = Field(description="Short summary of the proposed workflow")
     nodes: list[WorkflowNode] = Field(min_length=2, max_length=8)
     edges: list[WorkflowEdge] = Field(default_factory=list)
+    inputs: list[WorkflowInputModule] = Field(default_factory=list, max_length=12)
+    deliverables: list[WorkflowDeliverableSpec] = Field(default_factory=list, max_length=12)
 
 
 class GraphState(TypedDict, total=False):
@@ -97,7 +121,117 @@ def _fallback_plan(task: str) -> WorkflowPlan:
             WorkflowEdge(source="research_agent", target="builder_agent", handoff="findings"),
             WorkflowEdge(source="builder_agent", target="review_agent", handoff="draft output"),
         ],
+        inputs=[
+            WorkflowInputModule(
+                name="user_request",
+                type="long_text",
+                required=True,
+                description="Primary request or goal for the workflow execution.",
+            ),
+            WorkflowInputModule(
+                name="context_files",
+                type="file_upload",
+                required=False,
+                description="Optional files, docs, or references used as context.",
+            ),
+        ],
+        deliverables=[
+            WorkflowDeliverableSpec(
+                name="final_response",
+                type="markdown",
+                description="Final user-facing response or recommendation.",
+            ),
+            WorkflowDeliverableSpec(
+                name="execution_notes",
+                type="text",
+                description="Supporting notes, assumptions, and next steps.",
+            ),
+        ],
     )
+
+
+def _normalize_module_type(raw_type: str, *, fallback: str) -> str:
+    allowed = {
+        "user_input",
+        "long_text",
+        "file_upload",
+        "url",
+        "number",
+        "boolean",
+        "choice",
+        "json",
+        "text",
+        "markdown",
+        "file",
+        "csv",
+        "pdf",
+        "code_bundle",
+    }
+    normalized = _slugify(raw_type, fallback=fallback)
+    return normalized if normalized in allowed else fallback
+
+
+def _normalize_contract(
+    inputs: list[WorkflowInputModule],
+    deliverables: list[WorkflowDeliverableSpec],
+) -> tuple[list[WorkflowInputModule], list[WorkflowDeliverableSpec]]:
+    normalized_inputs: list[WorkflowInputModule] = []
+    seen_input_names: set[str] = set()
+    for index, item in enumerate(inputs[:12]):
+        name = _slugify(item.name, fallback=f"input_{index + 1}")
+        if name in seen_input_names:
+            suffix = 2
+            while f"{name}_{suffix}" in seen_input_names:
+                suffix += 1
+            name = f"{name}_{suffix}"
+        seen_input_names.add(name)
+        normalized_inputs.append(
+            WorkflowInputModule(
+                name=name,
+                type=_normalize_module_type(item.type or "", fallback="user_input"),
+                required=bool(item.required),
+                description=(item.description or "").strip()[:180],
+            )
+        )
+
+    normalized_deliverables: list[WorkflowDeliverableSpec] = []
+    seen_output_names: set[str] = set()
+    for index, item in enumerate(deliverables[:12]):
+        name = _slugify(item.name, fallback=f"deliverable_{index + 1}")
+        if name in seen_output_names:
+            suffix = 2
+            while f"{name}_{suffix}" in seen_output_names:
+                suffix += 1
+            name = f"{name}_{suffix}"
+        seen_output_names.add(name)
+        normalized_deliverables.append(
+            WorkflowDeliverableSpec(
+                name=name,
+                type=_normalize_module_type(item.type or "", fallback="text"),
+                description=(item.description or "").strip()[:180],
+            )
+        )
+
+    if not normalized_inputs:
+        normalized_inputs = [
+            WorkflowInputModule(
+                name="user_request",
+                type="long_text",
+                required=True,
+                description="Primary request or goal for this workflow run.",
+            )
+        ]
+
+    if not normalized_deliverables:
+        normalized_deliverables = [
+            WorkflowDeliverableSpec(
+                name="final_output",
+                type="markdown",
+                description="Primary workflow result prepared for the user.",
+            )
+        ]
+
+    return normalized_inputs, normalized_deliverables
 
 
 def _normalize_plan(plan: WorkflowPlan, task: str) -> WorkflowPlan:
@@ -159,7 +293,15 @@ def _normalize_plan(plan: WorkflowPlan, task: str) -> WorkflowPlan:
             for a, b in zip(normalized_nodes, normalized_nodes[1:])
         ]
 
-    return WorkflowPlan(summary=plan.summary.strip()[:320], nodes=normalized_nodes, edges=dedup_edges)
+    normalized_inputs, normalized_deliverables = _normalize_contract(plan.inputs, plan.deliverables)
+
+    return WorkflowPlan(
+        summary=plan.summary.strip()[:320],
+        nodes=normalized_nodes,
+        edges=dedup_edges,
+        inputs=normalized_inputs,
+        deliverables=normalized_deliverables,
+    )
 
 
 def _topological_order(node_ids: list[str], edges: list[WorkflowEdge]) -> list[str] | None:
@@ -211,6 +353,9 @@ def _llm_plan(task: str) -> tuple[WorkflowPlan, str]:
                 (
                     "You design compact agentic workflows for software/product tasks. "
                     "Return a DAG (not a loop) with 3-8 agent nodes. "
+                    "Also infer workflow-level user inputs and expected deliverables. "
+                    "Use practical input module types like user_input, long_text, file_upload, url, number, boolean, choice, json. "
+                    "Use deliverable types like text, markdown, file, json, csv, pdf, code_bundle. "
                     "Prefer clear handoffs and parallel branches only when useful. "
                     "Use short snake_case ids."
                 ),
@@ -220,7 +365,8 @@ def _llm_plan(task: str) -> tuple[WorkflowPlan, str]:
                 (
                     "Create a workflow for this task:\n"
                     f"{task}\n\n"
-                    "The workflow should be practical for an AI agent system and include a final review node."
+                    "The workflow should be practical for an AI agent system and include a final review node. "
+                    "Infer the minimum useful workflow-level inputs and the expected outputs/deliverables."
                 ),
             ),
         ]
@@ -305,6 +451,8 @@ def generate_workflow_plan(task: str) -> dict[str, Any]:
         "summary": plan.summary,
         "nodes": [node.model_dump() for node in plan.nodes],
         "edges": [edge.model_dump() for edge in plan.edges],
+        "inputs": [item.model_dump() for item in plan.inputs],
+        "deliverables": [item.model_dump() for item in plan.deliverables],
         "generated_by": generation_mode,
         "model": model_name,
         "warnings": warnings,

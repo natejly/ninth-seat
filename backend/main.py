@@ -42,6 +42,34 @@ except ModuleNotFoundError as exc:
         raise
     from workflow_planner import generate_workflow_plan
 
+try:
+    from backend.tooling import ToolRunRequest, list_tools, run_tool
+except ModuleNotFoundError as exc:
+    if exc.name != "backend":
+        raise
+    from tooling import ToolRunRequest, list_tools, run_tool
+
+try:
+    from backend.workflow_runtime import (
+        WorkflowRunCreateRequest,
+        cancel_workflow_run,
+        create_workflow_run,
+        delete_workflow_run,
+        get_workflow_run,
+        list_workflow_runs,
+    )
+except ModuleNotFoundError as exc:
+    if exc.name != "backend":
+        raise
+    from workflow_runtime import (
+        WorkflowRunCreateRequest,
+        cancel_workflow_run,
+        create_workflow_run,
+        delete_workflow_run,
+        get_workflow_run,
+        list_workflow_runs,
+    )
+
 
 def _parse_origins(raw: str) -> list[str]:
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
@@ -135,6 +163,137 @@ def workflow_plan(payload: WorkflowPlanRequest, request: Request) -> dict[str, A
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate workflow: {exc}",
         ) from exc
+
+
+@router.get("/tools")
+def tools_catalog(request: Request) -> dict[str, Any]:
+    if not _is_authenticated(request):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    return {"tools": list_tools()}
+
+
+@router.post("/tools/run")
+def tools_run(payload: ToolRunRequest, request: Request) -> dict[str, Any]:
+    if not _is_authenticated(request):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    try:
+        return run_tool(payload.tool, payload.args)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc.args[0]) if exc.args else "Unknown tool",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Tool execution failed: {exc}",
+        ) from exc
+
+
+@router.get("/workflow-runs")
+def workflow_runs_list(request: Request, limit: int = 100) -> dict[str, Any]:
+    if not _is_authenticated(request):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    return {"runs": list_workflow_runs(limit=limit)}
+
+
+@router.post("/workflow-runs")
+def workflow_runs_create(payload: WorkflowRunCreateRequest, request: Request) -> dict[str, Any]:
+    if not _is_authenticated(request):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    try:
+        return create_workflow_run(payload)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create workflow run: {exc}",
+        ) from exc
+
+
+@router.get("/workflow-runs/{run_id}")
+def workflow_runs_get(run_id: str, request: Request) -> dict[str, Any]:
+    if not _is_authenticated(request):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    run = get_workflow_run(run_id)
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow run not found",
+        )
+    return run
+
+
+@router.post("/workflow-runs/{run_id}/cancel")
+def workflow_runs_cancel(run_id: str, request: Request) -> dict[str, Any]:
+    if not _is_authenticated(request):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    run = cancel_workflow_run(run_id)
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow run not found",
+        )
+    return run
+
+
+@router.delete("/workflow-runs/{run_id}")
+def workflow_runs_delete(run_id: str, request: Request) -> dict[str, Any]:
+    if not _is_authenticated(request):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    try:
+        run = delete_workflow_run(run_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow run not found",
+        )
+    return {"deleted": True, "run": run}
 
 
 def create_app(*, api_prefixes: tuple[str, ...] = ("/api",)) -> FastAPI:

@@ -45,7 +45,7 @@ select {
   overflow: hidden;
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: 8px;
   background:
     radial-gradient(circle at 16% 10%, rgba(255, 255, 255, 0.05), transparent 42%),
     radial-gradient(circle at 88% 14%, rgba(130, 150, 175, 0.11), transparent 40%),
@@ -115,18 +115,24 @@ select {
   gap: 6px;
   padding: 6px 10px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
   color: var(--muted);
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-size: 10px;
+  letter-spacing: 0.06em;
   text-transform: lowercase;
 }
 
 .subtle-chip {
   background: rgba(255, 255, 255, 0.02);
   color: var(--muted);
+}
+
+.chip-positive {
+  color: #c6f5d7;
+  border-color: rgba(121, 224, 164, 0.22);
+  background: rgba(121, 224, 164, 0.08);
 }
 
 h1 {
@@ -286,7 +292,8 @@ p {
 
 .app-layout {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 14px;
   min-height: min(88vh, 900px);
 }
@@ -301,41 +308,44 @@ p {
 
 .sidebar {
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
   padding: 14px;
 }
 
 .sidebar-brand {
-  display: grid;
+  display: flex;
+  align-items: center;
   gap: 8px;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.015);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .sidebar-brand-title {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
+  font-size: 12px;
   color: var(--accent);
   letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .sidebar-brand-copy {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.4;
+  display: none;
 }
 
 .sidebar-nav {
-  display: grid;
-  align-content: start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
 }
 
 .sidebar-tab {
-  width: 100%;
+  width: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -368,21 +378,22 @@ p {
 }
 
 .sidebar-footer {
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 10px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 0;
+  border-top: 0;
 }
 
 .sidebar-session {
-  display: grid;
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
 .sidebar-footnote {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.4;
+  display: none;
 }
 
 .workspace {
@@ -430,6 +441,8 @@ p {
   min-height: 0;
   overflow: auto;
   padding: 16px;
+  display: grid;
+  align-content: start;
 }
 
 .page-stack {
@@ -450,11 +463,14 @@ p {
 
 .panel-surface {
   display: grid;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 8px;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.015);
+  background: rgba(11, 14, 19, 0.92);
+  box-shadow:
+    0 16px 42px -28px rgba(0, 0, 0, 0.85),
+    0 2px 10px -6px rgba(0, 0, 0, 0.5);
 }
 
 .section-head {
@@ -466,12 +482,12 @@ p {
 
 .section-head h2 {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.2;
   color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: -0.01em;
+  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  font-weight: 500;
 }
 
 .surface-copy {
@@ -537,6 +553,10 @@ p {
   gap: 8px;
 }
 
+.workflow-list-empty-hint {
+  margin-bottom: 10px;
+}
+
 .workflow-row {
   width: 100%;
   display: flex;
@@ -558,6 +578,75 @@ button.workflow-row {
 button.workflow-row:hover {
   border-color: rgba(223, 232, 245, 0.14);
   background: rgba(223, 232, 245, 0.03);
+}
+
+.workflow-create-row {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px dashed rgba(223, 232, 245, 0.18);
+  background:
+    linear-gradient(180deg, rgba(223, 232, 245, 0.02), rgba(223, 232, 245, 0.01)),
+    rgba(255, 255, 255, 0.01);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workflow-create-row:hover {
+  border-color: rgba(223, 232, 245, 0.28);
+  background:
+    linear-gradient(180deg, rgba(223, 232, 245, 0.04), rgba(223, 232, 245, 0.015)),
+    rgba(255, 255, 255, 0.015);
+}
+
+.workflow-create-row-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.workflow-create-badge {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(223, 232, 245, 0.14);
+  background: rgba(223, 232, 245, 0.04);
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.workflow-create-skeleton {
+  display: grid;
+  gap: 6px;
+  padding-left: 32px;
+}
+
+.workflow-create-skeleton-line {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(223, 232, 245, 0.08);
+}
+
+.workflow-create-skeleton-line-long {
+  width: 88%;
+}
+
+.workflow-create-skeleton-line-mid {
+  width: 64%;
+}
+
+.workflow-create-skeleton-line-short {
+  width: 42%;
 }
 
 .workflow-row.selectable {
@@ -605,6 +694,10 @@ button.workflow-row:hover {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .workflow-row-meta {
@@ -712,9 +805,10 @@ button.workflow-row:hover {
 
 .workflows-layout {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 18px;
   min-height: 100%;
+  height: 100%;
 }
 
 .workflow-list-panel,
@@ -723,12 +817,17 @@ button.workflow-row:hover {
   align-content: start;
 }
 
+.workflow-list-panel {
+  max-height: 100%;
+  overflow: auto;
+}
+
 .detail-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  padding-bottom: 2px;
+  gap: 18px;
+  padding-bottom: 4px;
 }
 
 .detail-title {
@@ -755,18 +854,18 @@ button.workflow-row:hover {
 .detail-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .detail-tabs {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.01);
+  gap: 6px;
+  padding: 2px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
   overflow-x: auto;
 }
 
@@ -774,13 +873,13 @@ button.workflow-row:hover {
   border: 0;
   background: transparent;
   color: var(--muted);
-  padding: 8px 10px;
-  border-radius: 6px;
+  padding: 9px 12px;
+  border-radius: 8px;
   cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -797,12 +896,60 @@ button.workflow-row:hover {
 
 .detail-tab-panel {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  min-height: 0;
+}
+
+.detail-meta-graph {
+  margin-top: 10px;
 }
 
 .detail-grid {
   display: grid;
   gap: 12px;
+}
+
+.contract-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.contract-columns-edit {
+  align-items: start;
+}
+
+.contract-column {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.008);
+  min-width: 0;
+}
+
+.contract-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.contract-list {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.contract-list li {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .kv-grid {
@@ -1110,6 +1257,287 @@ button.workflow-row:hover {
   gap: 14px;
 }
 
+.wizard-stepbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.wizard-step {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.015);
+  color: var(--muted);
+  padding: 8px 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.wizard-step:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.wizard-step.active {
+  color: var(--accent);
+  border-color: rgba(223, 232, 245, 0.18);
+  background: rgba(223, 232, 245, 0.06);
+}
+
+.wizard-step:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.compact-note-panel {
+  gap: 10px;
+}
+
+.compact-list {
+  gap: 6px;
+}
+
+.compact-list .surface-copy {
+  font-size: 13px;
+}
+
+.contract-review-panel {
+  gap: 12px;
+}
+
+.contract-review-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.contract-review-header-main {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.contract-review-header-main h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+  color: var(--accent);
+}
+
+.contract-review-copy {
+  font-size: 13px;
+}
+
+.contract-review-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.contract-review-summary-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.008)),
+    rgba(6, 8, 12, 0.5);
+}
+
+.contract-review-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.contract-review-metric {
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.contract-review-metric span {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.contract-review-metric strong {
+  color: var(--accent);
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+.contract-review-footnote {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.contract-editor-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.contract-editor-pane {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.006);
+  min-width: 0;
+}
+
+.contract-editor-pane-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.contract-editor-pane-title {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.contract-editor-pane-title h3 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--accent);
+}
+
+.contract-editor-pane-copy {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.contract-editor-list {
+  gap: 10px;
+}
+
+.contract-editor-card {
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.module-editor-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.module-editor-card-title {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.module-editor-card-kicker {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.module-editor-card-title code {
+  display: block;
+  max-width: 100%;
+  color: var(--accent);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.module-editor-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.module-editor-card-meta .chip {
+  white-space: nowrap;
+}
+
+.module-editor-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.contract-editor-pane .field-group > span {
+  font-size: 11px;
+}
+
+.module-editor-list {
+  display: grid;
+  gap: 8px;
+}
+
+.module-editor-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.008);
+}
+
+.module-editor-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 8px;
+}
+
+.module-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.module-editor-actions-end {
+  justify-content: flex-end;
+}
+
+.checkbox-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.checkbox-inline input {
+  width: 14px;
+  height: 14px;
+  accent-color: #9cb6dc;
+}
+
 .modal-actions {
   display: flex;
   align-items: flex-start;
@@ -1131,6 +1559,1125 @@ button.workflow-row:hover {
 
 .modal-preview-panel {
   align-content: start;
+}
+
+.app-shell {
+  padding: 16px;
+}
+
+.home-shell {
+  position: relative;
+  z-index: 1;
+  width: calc(100vw - 32px);
+  height: calc(100vh - 32px);
+}
+
+.app-layout {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+  min-height: 100%;
+  height: 100%;
+}
+
+.sidebar,
+.workspace {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(7, 10, 14, 0.62);
+  box-shadow:
+    0 18px 60px -34px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+}
+
+.workspace {
+  min-height: 100%;
+  background: transparent;
+  backdrop-filter: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.sidebar {
+  padding: 10px 12px;
+}
+
+.workspace-header {
+  padding: 18px 22px 12px;
+}
+
+.workspace-content {
+  padding: 18px 22px 22px;
+}
+
+.workflows-layout {
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.workflow-detail-panel {
+  min-height: 0;
+  height: 100%;
+  gap: 12px;
+  background: rgba(9, 12, 16, 0.94);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.workflow-detail-panel.graph-mode {
+  padding: 14px;
+}
+
+.detail-tab-panel {
+  gap: 14px;
+}
+
+.workflow-detail-panel.graph-mode .detail-header {
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 0;
+}
+
+.workflow-detail-panel.graph-mode .detail-title {
+  margin-top: 6px;
+  font-size: clamp(18px, 1.8vw, 24px);
+}
+
+.workflow-detail-panel.graph-mode .chip.subtle-chip {
+  opacity: 0.7;
+}
+
+.dag-shell.interactive {
+  overflow: hidden;
+  min-height: clamp(640px, 80vh, 1100px);
+  height: 100%;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(223, 232, 245, 0.05), transparent 34%),
+    radial-gradient(circle at 86% 12%, rgba(130, 150, 175, 0.07), transparent 32%),
+    rgba(3, 5, 8, 0.72);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.dag-svg.interactive {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.dag-node.interactive {
+  cursor: grab;
+}
+
+.dag-node.interactive:active {
+  cursor: grabbing;
+}
+
+.graph-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 272px;
+  gap: 16px;
+  align-items: start;
+  min-height: 0;
+}
+
+.graph-stage-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.graph-stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 2px 2px 0;
+}
+
+.graph-toolbar-actions {
+  flex-shrink: 0;
+}
+
+.graph-help {
+  margin-top: 6px;
+  max-width: 72ch;
+  font-size: 13px;
+}
+
+.graph-canvas-shell {
+  min-height: 0;
+  height: clamp(640px, 80vh, 1100px);
+  padding: 0;
+  gap: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.005);
+}
+
+.graph-canvas-svg {
+  min-width: 0;
+}
+
+.graph-inspector-panel {
+  align-content: start;
+  position: sticky;
+  top: 0;
+  max-height: 100%;
+  overflow: auto;
+  background: rgba(255, 255, 255, 0.01);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.workflow-contract-section {
+  margin-bottom: 2px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.workflow-contract-disclosure {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.008);
+  overflow: hidden;
+}
+
+.workflow-contract-disclosure > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.workflow-contract-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.workflow-contract-disclosure[open] > summary {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.workflow-contract-summary-main {
+  min-width: 0;
+}
+
+.workflow-contract-summary-main h2 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.workflow-contract-summary-copy {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.workflow-contract-summary-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.workflow-contract-caret {
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid rgba(223, 232, 245, 0.7);
+  border-bottom: 1.5px solid rgba(223, 232, 245, 0.7);
+  transform: rotate(45deg);
+  transition: transform 140ms ease;
+}
+
+.workflow-contract-disclosure[open] .workflow-contract-caret {
+  transform: rotate(225deg);
+}
+
+.workflow-contract-body {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.workflow-contract-body .field-group > span {
+  font-size: 11px;
+}
+
+.workflow-contract-textarea {
+  min-height: 62px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.workflow-contract-hint {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.graph-inspector-empty {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.graph-inspector-empty p {
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 13px;
+}
+
+.graph-inspector-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.graph-node-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.008);
+}
+
+.graph-node-meta code {
+  color: var(--accent-dark);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+}
+
+.graph-connection-section {
+  display: grid;
+  gap: 10px;
+  padding: 10px 0 0;
+  border-radius: 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent;
+}
+
+.graph-add-connection {
+  display: grid;
+  gap: 10px;
+}
+
+.graph-connection-list {
+  display: grid;
+  gap: 8px;
+}
+
+.graph-connection-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.008);
+}
+
+.graph-connection-card.compact {
+  gap: 6px;
+}
+
+.graph-edge-contract-section {
+  gap: 8px;
+}
+
+.handoff-contract-card {
+  gap: 10px;
+}
+
+.handoff-contract-card .section-head h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.handoff-contract-copy {
+  margin-top: -2px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.handoff-field-list {
+  display: grid;
+  gap: 8px;
+}
+
+.handoff-field-row {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.008);
+}
+
+.handoff-field-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.handoff-required-toggle {
+  align-content: start;
+}
+
+.checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 2px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.checkbox-row input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+
+.handoff-field-row-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.graph-connection-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.graph-connection-arrow {
+  color: var(--accent-dark);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.graph-connection-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dag-shell.interactive:active .dag-svg.interactive {
+  cursor: grabbing;
+}
+
+.dag-node-handle-hit,
+.dag-edge-handle-hit {
+  cursor: crosshair;
+}
+
+.dag-edge-hit {
+  cursor: pointer;
+}
+
+.run-modal-shell {
+  width: min(980px, 100%);
+}
+
+.run-modal-template-summary {
+  align-content: start;
+}
+
+.run-log-filter {
+  min-width: 140px;
+  min-height: 34px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.workflow-runtime-layout {
+  align-items: start;
+}
+
+.workflow-runs-workspace {
+  min-height: 0;
+}
+
+.workflow-runs-tab-shell {
+  gap: 8px;
+}
+
+.workflow-runs-tabs {
+  align-self: flex-start;
+}
+
+.workflow-runs-tab-copy {
+  font-size: 13px;
+}
+
+.live-run-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 14px;
+  align-items: start;
+  min-height: 0;
+}
+
+.live-run-panel,
+.live-run-viewer-panel {
+  align-content: start;
+  min-height: 0;
+}
+
+.live-run-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.live-run-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.live-run-template-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background:
+    radial-gradient(circle at 8% 12%, rgba(125, 176, 246, 0.05), transparent 35%),
+    rgba(255, 255, 255, 0.008);
+}
+
+.live-run-chat-shell {
+  gap: 10px;
+}
+
+.live-run-message-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.live-run-message {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.live-run-message.user {
+  border-color: rgba(125, 176, 246, 0.18);
+  background: rgba(125, 176, 246, 0.05);
+}
+
+.live-run-message.system {
+  border-color: rgba(121, 224, 164, 0.16);
+  background: rgba(121, 224, 164, 0.035);
+}
+
+.live-run-message p {
+  margin: 0;
+  color: rgba(223, 232, 245, 0.95);
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.live-run-message-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.live-run-composer {
+  display: grid;
+  gap: 8px;
+}
+
+.live-run-composer-textarea {
+  min-height: 112px;
+}
+
+.live-run-composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.live-run-upload-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.live-run-upload-button input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.live-run-upload-list {
+  display: grid;
+  gap: 8px;
+}
+
+.live-run-upload-list.compact {
+  gap: 6px;
+}
+
+.live-run-upload-chip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.008);
+}
+
+.live-run-upload-chip > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.live-run-upload-chip strong {
+  color: var(--accent);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.live-run-upload-chip span {
+  color: var(--muted);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.live-run-checklist {
+  display: grid;
+  gap: 6px;
+}
+
+.live-run-check-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.006);
+}
+
+.live-run-check-item > span {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.live-run-check-item.done {
+  border-color: rgba(121, 224, 164, 0.14);
+  background: rgba(121, 224, 164, 0.025);
+}
+
+.live-run-input-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.live-run-input-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.live-run-input-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.live-run-input-card-head h3 {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--accent);
+}
+
+.live-run-input-card-key {
+  margin-top: 4px;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.live-run-deliverable-checklist {
+  display: grid;
+  gap: 8px;
+}
+
+.live-run-deliverable-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.008);
+}
+
+.live-run-deliverable-item input {
+  margin-top: 2px;
+}
+
+.live-run-deliverable-item > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.live-run-deliverable-item strong {
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.live-run-deliverable-item span {
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.live-run-start-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.live-run-start-bar .hint,
+.live-run-start-bar .error {
+  flex: 1;
+  min-height: 0;
+}
+
+.live-run-activity-list {
+  display: grid;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.live-run-activity-item {
+  display: grid;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.008);
+}
+
+.live-run-activity-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.live-run-activity-head code {
+  color: var(--accent);
+}
+
+.live-run-activity-title {
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.live-run-activity-copy {
+  color: rgba(223, 232, 245, 0.88);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.deliverable-viewer-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.deliverable-file-list {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  max-height: 680px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.deliverable-file-list.compact {
+  max-height: none;
+}
+
+.deliverable-file-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.008);
+}
+
+button.deliverable-file-row {
+  cursor: pointer;
+}
+
+button.deliverable-file-row:hover {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.deliverable-file-row.active {
+  border-color: rgba(125, 176, 246, 0.3);
+  background: rgba(125, 176, 246, 0.055);
+}
+
+.deliverable-file-row.placeholder {
+  grid-template-columns: 1fr;
+}
+
+.deliverable-file-row > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.deliverable-file-row strong {
+  color: var(--accent);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.deliverable-file-row span {
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.deliverable-file-preview-panel {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.008);
+}
+
+.deliverable-file-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.deliverable-file-preview-head h3 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.2;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.deliverable-file-preview {
+  margin: 0;
+  min-height: 320px;
+  max-height: min(70vh, 820px);
+  overflow: auto;
+}
+
+.run-monitor-list {
+  gap: 8px;
+}
+
+.run-monitor-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.01);
+  padding: 12px;
+}
+
+.run-monitor-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.11);
+}
+
+.run-monitor-row.selected {
+  border-color: rgba(125, 176, 246, 0.3);
+  background: rgba(125, 176, 246, 0.06);
+}
+
+.run-monitor-row-side {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.run-monitor-row-side code {
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+}
+
+.workflow-run-detail {
+  min-height: 0;
+}
+
+.run-detail-header {
+  align-items: flex-start;
+}
+
+.run-detail-grid {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.run-detail-grid.lower {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.run-agent-list {
+  display: grid;
+  gap: 8px;
+}
+
+.run-agent-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  text-align: left;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.run-agent-row:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.run-agent-row.selected {
+  border-color: rgba(125, 176, 246, 0.32);
+  background: rgba(125, 176, 246, 0.055);
+}
+
+.run-agent-row.running {
+  box-shadow: 0 0 0 1px rgba(121, 224, 164, 0.14) inset;
+}
+
+.run-agent-title {
+  margin: 0;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.run-agent-meta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+}
+
+.run-agent-thinking-preview {
+  margin-top: 6px;
+  color: rgba(223, 232, 245, 0.82);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.nested-panel {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.008);
+}
+
+.neutral-log-note {
+  background: rgba(125, 176, 246, 0.03);
+  border-color: rgba(125, 176, 246, 0.15);
+  color: rgba(223, 232, 245, 0.9);
+}
+
+.run-log-list {
+  display: grid;
+  gap: 10px;
+  max-height: 720px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.run-log-item {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.01);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.run-log-item.category-error {
+  border-color: rgba(255, 107, 107, 0.22);
+  background: rgba(255, 107, 107, 0.04);
+}
+
+.run-log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.run-log-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.run-log-meta code {
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.log-category-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+}
+
+.log-category-badge.input {
+  border-color: rgba(125, 176, 246, 0.25);
+  color: #b7d0ff;
+}
+
+.log-category-badge.handoff {
+  border-color: rgba(255, 208, 146, 0.24);
+  color: #ffd9ae;
+}
+
+.log-category-badge.thinking {
+  border-color: rgba(121, 224, 164, 0.24);
+  color: #b9f0cf;
+}
+
+.log-category-badge.output {
+  border-color: rgba(210, 192, 255, 0.24);
+  color: #ded2ff;
+}
+
+.log-category-badge.error {
+  border-color: rgba(255, 107, 107, 0.3);
+  color: #ffd1d1;
+}
+
+.run-log-title {
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.run-log-message {
+  color: rgba(223, 232, 245, 0.9);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.run-log-payload {
+  margin: 0;
+  max-height: 260px;
+}
+
+.deliverable-list {
+  display: grid;
+  gap: 8px;
+}
+
+.deliverable-card {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.01);
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.deliverable-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.deliverable-preview {
+  margin: 0;
+  max-height: 180px;
 }
 
 button,
@@ -1164,38 +2711,104 @@ button:focus-visible,
   }
 
   .workflows-layout {
-    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .run-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .run-detail-grid.lower {
+    grid-template-columns: 1fr;
+  }
+
+  .graph-editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .graph-inspector-panel {
+    position: static;
+    max-height: none;
+  }
+
+  .graph-canvas-svg,
+  .dag-svg.interactive {
+    min-width: 0;
+  }
+
+  .live-run-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .deliverable-viewer-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .deliverable-file-list {
+    max-height: 280px;
   }
 
   .modal-preview-grid {
     grid-template-columns: 1fr;
   }
+
+  .module-editor-row {
+    grid-template-columns: 1fr;
+  }
+
+  .contract-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .contract-editor-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .contract-review-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 980px) {
-  .home-panel {
-    padding: 10px;
+  .app-shell {
+    padding: 12px;
+  }
+
+  .home-shell {
+    width: calc(100vw - 24px);
+    height: calc(100vh - 24px);
   }
 
   .app-layout {
     grid-template-columns: 1fr;
-    min-height: auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 100%;
   }
 
   .sidebar {
-    grid-template-rows: auto auto auto;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: stretch;
   }
 
   .sidebar-nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: flex-start;
   }
 
   .workspace {
-    min-height: min(78vh, 920px);
+    min-height: 0;
   }
 
   .workflows-layout {
     grid-template-columns: 1fr;
+  }
+
+  .run-monitor-row {
+    grid-template-columns: 1fr;
+  }
+
+  .run-monitor-row-side {
+    justify-items: start;
   }
 
   .detail-header {
@@ -1207,6 +2820,47 @@ button:focus-visible,
     justify-content: space-between;
   }
 
+  .live-run-toolbar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .live-run-toolbar-actions {
+    justify-content: flex-start;
+  }
+
+  .live-run-start-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .deliverable-file-preview-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .contract-review-header {
+    flex-direction: column;
+  }
+
+  .contract-review-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .graph-stage-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .graph-toolbar-actions {
+    justify-content: flex-start;
+  }
+
+  .graph-canvas-shell {
+    min-height: clamp(460px, 62vh, 720px);
+  }
+
   .edge-row,
   .edge-add {
     grid-template-columns: 1fr;
@@ -1214,6 +2868,10 @@ button:focus-visible,
 }
 
 @media (max-width: 640px) {
+  .app-shell {
+    padding: 8px;
+  }
+
   .panel {
     padding: 20px;
   }
@@ -1231,8 +2889,60 @@ button:focus-visible,
     width: 100%;
   }
 
-  .sidebar-nav {
+  .live-run-composer-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .live-run-composer-actions .button,
+  .live-run-upload-button {
+    width: 100%;
+  }
+
+  .live-run-upload-chip {
     grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .live-run-check-item {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .live-run-input-card-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .deliverable-file-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .contract-review-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .contract-editor-pane-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .contract-editor-pane-head .button {
+    width: 100%;
+  }
+
+  .module-editor-card-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .module-editor-card-meta {
+    justify-content: flex-start;
+  }
+
+  .sidebar-nav {
+    justify-content: flex-start;
   }
 
   .stats-grid {
@@ -1241,6 +2951,11 @@ button:focus-visible,
 
   .dag-svg {
     min-width: 640px;
+  }
+
+  .dag-svg.interactive,
+  .graph-canvas-svg {
+    min-width: 0;
   }
 
   .modal-header,
@@ -1262,7 +2977,10 @@ button:focus-visible,
 
   .dashboard-run-row,
   .run-card-top,
-  .node-run-chip {
+  .node-run-chip,
+  .run-log-head,
+  .deliverable-head,
+  .workflow-contract-summary {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -1270,6 +2988,20 @@ button:focus-visible,
   .dashboard-run-actions {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .graph-node-meta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-shell {
+    width: calc(100vw - 16px);
+    height: calc(100vh - 16px);
+  }
+
+  .workspace-content {
+    padding: 14px;
   }
 }
 
