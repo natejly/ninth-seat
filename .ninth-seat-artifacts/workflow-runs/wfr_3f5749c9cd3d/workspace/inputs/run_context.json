@@ -1,0 +1,16 @@
+{
+  "runId": "wfr_3f5749c9cd3d",
+  "workflowId": "wf_7rt80m_mm0qft6q",
+  "workflowName": "Workflow for AI-assisted fullstack app de…",
+  "requestedDeliverables": [
+    "requirements_spec",
+    "design_doc",
+    "frontend_code",
+    "backend_code",
+    "test_report",
+    "deployment_report",
+    "app_url",
+    "final_review_report"
+  ],
+  "createdAt": "2026-02-24T15:01:08.280110+00:00"
+}

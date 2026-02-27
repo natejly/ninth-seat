@@ -1,0 +1,26 @@
+{
+  "app_idea_problem_statement": "calculator app",
+  "target_users_roles": "",
+  "core_features_must_have_list": "4 function calc",
+  "authentication_requirement": "none",
+  "data_persistence": "none",
+  "integrations": "",
+  "design_preference": "",
+  "tech_constraints": "",
+  "live_session_messages": [
+    {
+      "role": "system",
+      "text": "Selected DAG workflow to design, implement, and. Fill required inputs and upload supporting documents before starting the run."
+    }
+  ],
+  "workflowTemplateInputs": [
+    "app_idea_problem_statement",
+    "target_users_roles",
+    "core_features_must_have_list",
+    "authentication_requirement",
+    "data_persistence",
+    "integrations",
+    "design_preference",
+    "tech_constraints"
+  ]
+}

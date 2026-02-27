@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
 const WORKFLOWS_STORAGE_KEY = 'ninth-seat.workflows.v1';
@@ -7,7 +7,7 @@ const RUNS_STORAGE_KEY = 'ninth-seat.runs.v1';
 const SIDEBAR_TABS = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'workflows', label: 'Workflow Creator' },
-  { id: 'workflowRuns', label: 'Workflows & Runs' },
+  { id: 'workflowRuns', label: 'Runs' },
 ];
 
 const INTERACTIVE_GRAPH_LAYOUT = {
@@ -207,7 +207,6 @@ async function serializeUploadedFileForRun(file) {
 
 function plannerSourceLabel(generatedBy) {
   if (generatedBy === 'langchain_openai') return 'langchain + langgraph';
-  if (generatedBy === 'fallback_planner') return 'fallback planner';
   if (generatedBy) return generatedBy;
   return 'planner';
 }
@@ -240,6 +239,25 @@ function formatLineItems(items) {
     .map((item) => item.trim())
     .filter(Boolean)
     .join('\n');
+}
+
+function normalizeStringList(items, maxItems = 40) {
+  if (!Array.isArray(items)) return [];
+  const next = [];
+  const seen = new Set();
+  for (const item of items) {
+    if (typeof item !== 'string') continue;
+    const value = item.trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    next.push(value);
+    if (next.length >= maxItems) break;
+  }
+  return next;
+}
+
+function mergeStringListOptions(...lists) {
+  return normalizeStringList(lists.flatMap((list) => (Array.isArray(list) ? list : [])));
 }
 
 function slugifyClient(value, fallback) {
@@ -624,6 +642,617 @@ function formatJsonPreview(value) {
   }
 }
 
+function humanizeIdentifier(value) {
+  return ensureString(value, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+function summarizeValueForUi(value) {
+  if (value == null) return 'none';
+  if (typeof value === 'string') return truncate(value, 120) || 'empty text';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return `${value.length} item${value.length === 1 ? '' : 's'}`;
+  if (typeof value === 'object') return `${Object.keys(value).length} field${Object.keys(value).length === 1 ? '' : 's'}`;
+  return String(value);
+}
+
+function sortedLogs(logs) {
+  return (Array.isArray(logs) ? logs : []).slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
+}
+
+function extractWorkspaceRefsForUi(value, maxItems = 12) {
+  if (!Array.isArray(value)) return [];
+  const refs = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const path = ensureString(item.path || item.relativePath || item.file, '').trim();
+    if (!path) continue;
+    refs.push({
+      path,
+      operation: ensureString(item.operation, '').trim(),
+      kind: ensureString(item.kind, '').trim(),
+      sourceTool: ensureString(item.sourceTool, '').trim(),
+    });
+    if (refs.length >= maxItems) break;
+  }
+  return refs;
+}
+
+function summarizeWorkspaceRefsForUi(value, maxItems = 5) {
+  return extractWorkspaceRefsForUi(value, maxItems).map((ref) => `${ref.path}${ref.operation ? ` (${ref.operation})` : ''}`);
+}
+
+function guessCodeLanguageFromPath(path) {
+  const safe = ensureString(path, '').toLowerCase();
+  if (safe.endsWith('.js') || safe.endsWith('.jsx')) return 'javascript';
+  if (safe.endsWith('.ts') || safe.endsWith('.tsx')) return 'typescript';
+  if (safe.endsWith('.py')) return 'python';
+  if (safe.endsWith('.sh')) return 'bash';
+  if (safe.endsWith('.json')) return 'json';
+  if (safe.endsWith('.html')) return 'html';
+  if (safe.endsWith('.css')) return 'css';
+  if (safe.endsWith('.md')) return 'markdown';
+  return 'text';
+}
+
+function guessMimeTypeFromPath(path) {
+  const safe = ensureString(path, '').toLowerCase();
+  if (safe.endsWith('.png')) return 'image/png';
+  if (safe.endsWith('.jpg') || safe.endsWith('.jpeg')) return 'image/jpeg';
+  if (safe.endsWith('.gif')) return 'image/gif';
+  if (safe.endsWith('.webp')) return 'image/webp';
+  if (safe.endsWith('.svg')) return 'image/svg+xml';
+  if (safe.endsWith('.json')) return 'application/json';
+  if (safe.endsWith('.pdf')) return 'application/pdf';
+  if (safe.endsWith('.csv')) return 'text/csv';
+  if (safe.endsWith('.md')) return 'text/markdown';
+  if (safe.endsWith('.html')) return 'text/html';
+  if (safe.endsWith('.css')) return 'text/css';
+  if (safe.endsWith('.js')) return 'text/javascript';
+  if (safe.endsWith('.ts')) return 'text/plain';
+  return '';
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Lightweight Markdown → HTML renderer (no deps)         */
+/* ─────────────────────────────────────────────────────── */
+function renderMarkdownToHtml(md) {
+  if (!md || typeof md !== 'string') return '';
+  let html = md;
+  // Escape HTML entities
+  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Headings
+  html = html.replace(/^#{6}\s+(.+)$/gm, '<h6>$1</h6>');
+  html = html.replace(/^#{5}\s+(.+)$/gm, '<h5>$1</h5>');
+  html = html.replace(/^#{4}\s+(.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+  // Fenced code blocks
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, lang, code) =>
+    `<pre class="code-block md-code-block${lang ? ` language-${lang}` : ''}"><code>${code.trim()}</code></pre>`
+  );
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
+  // Bold + italic
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Horizontal rule
+  html = html.replace(/^---+$/gm, '<hr />');
+  // Unordered lists
+  html = html.replace(/^[*\-+]\s+(.+)$/gm, '<li>$1</li>');
+  html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+  // Ordered lists
+  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // Blockquotes
+  html = html.replace(/^&gt;\s+(.+)$/gm, '<blockquote>$1</blockquote>');
+  // Paragraphs (wrap remaining bare lines)
+  html = html.replace(/^(?!<[a-z/])(.*\S.*)$/gm, '<p>$1</p>');
+  // Clean up double-wrapped
+  html = html.replace(/<p><(h[1-6]|ul|ol|li|pre|blockquote|hr)/g, '<$1');
+  html = html.replace(/<\/(h[1-6]|ul|ol|li|pre|blockquote)><\/p>/g, '</$1>');
+  return html;
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Build a nested file tree from a flat list of paths     */
+/* ─────────────────────────────────────────────────────── */
+function buildFileTree(files) {
+  const root = { name: '', children: new Map(), files: [] };
+  for (const file of files) {
+    const segments = file.path.split('/').filter(Boolean);
+    let node = root;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const seg = segments[i];
+      if (!node.children.has(seg)) {
+        node.children.set(seg, { name: seg, children: new Map(), files: [] });
+      }
+      node = node.children.get(seg);
+    }
+    node.files.push({ ...file, fileName: segments[segments.length - 1] || file.path });
+  }
+  return root;
+}
+
+function extractCodePreviewsFromLog(log, maxItems = 4) {
+  const payload = log?.payload && typeof log.payload === 'object' ? log.payload : null;
+  if (!payload) return [];
+
+  const previews = [];
+
+  if (log.category === 'control' && log.title === 'Tool call requested' && payload.tool === 'workspace_write_file') {
+    const args = payload.args && typeof payload.args === 'object' ? payload.args : {};
+    const files = args.files && typeof args.files === 'object' ? args.files : null;
+    if (files) {
+      for (const [path, content] of Object.entries(files)) {
+        if (typeof path !== 'string' || typeof content !== 'string') continue;
+        previews.push({
+          path,
+          language: guessCodeLanguageFromPath(path),
+          source: 'write_request',
+          content: truncate(content, 1200),
+        });
+        if (previews.length >= maxItems) break;
+      }
+    } else if (typeof args.path === 'string' && typeof args.content === 'string' && args.path.trim()) {
+      previews.push({
+        path: args.path,
+        language: guessCodeLanguageFromPath(args.path),
+        source: 'write_request',
+        content: truncate(args.content, 1200),
+      });
+    }
+  }
+
+  if (log.category === 'output' && log.title === 'Tool call completed' && payload.tool === 'workspace_exec') {
+    const result = payload.result && typeof payload.result === 'object' ? payload.result : {};
+    const artifacts = Array.isArray(result.artifacts) ? result.artifacts : [];
+    for (const artifact of artifacts) {
+      if (!artifact || typeof artifact !== 'object') continue;
+      const path = ensureString(artifact.path, '').trim();
+      const textPreview = ensureString(artifact.text_preview, '');
+      if (!path || !textPreview) continue;
+      previews.push({
+        path,
+        language: guessCodeLanguageFromPath(path),
+        source: 'exec_artifact',
+        content: truncate(textPreview, 1200),
+      });
+      if (previews.length >= maxItems) break;
+    }
+  }
+
+  return previews.slice(0, maxItems);
+}
+
+function collectNodeWorkspaceRefs(nodeRun) {
+  const refs = [];
+  const seen = new Set();
+  const pushRefs = (candidate) => {
+    for (const ref of extractWorkspaceRefsForUi(candidate, 60)) {
+      const key = `${ref.path}|${ref.operation}|${ref.kind}|${ref.sourceTool}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      refs.push(ref);
+      if (refs.length >= 60) return;
+    }
+  };
+
+  pushRefs(nodeRun?.output?.data?.workspaceRefs);
+  const logs = Array.isArray(nodeRun?.logs) ? nodeRun.logs : [];
+  for (const log of logs) {
+    pushRefs(log?.payload?.workspaceRefs);
+    pushRefs(log?.payload?.packet?.payload?.workspaceRefs);
+  }
+  return refs;
+}
+
+function collectRunWorkspaceFiles(run, maxItems = 240) {
+  if (!run || typeof run !== 'object') return [];
+
+  const nodeRuns = Array.isArray(run.nodeRuns) ? run.nodeRuns : [];
+  const nodeNameById = new Map(
+    nodeRuns
+      .map((nodeRun) => [ensureString(nodeRun?.nodeId, '').trim(), ensureString(nodeRun?.name, '').trim()])
+      .filter(([nodeId]) => nodeId)
+  );
+  const filesByPath = new Map();
+  let sourceOrder = 0;
+
+  const upsertPath = (rawPath, meta = {}) => {
+    const path = ensureString(rawPath, '').trim();
+    if (!path) return;
+
+    let entry = filesByPath.get(path);
+    if (!entry) {
+      entry = {
+        path,
+        kinds: new Set(),
+        operations: new Set(),
+        sourceTools: new Set(),
+        agentNames: new Set(),
+        sources: new Set(),
+        mentions: 0,
+        latestSeq: -1,
+        latestTimestamp: '',
+        sourceOrder: sourceOrder++,
+      };
+      filesByPath.set(path, entry);
+    }
+
+    entry.mentions += 1;
+    if (typeof meta.kind === 'string' && meta.kind.trim()) entry.kinds.add(meta.kind.trim());
+    if (typeof meta.operation === 'string' && meta.operation.trim()) entry.operations.add(meta.operation.trim());
+    if (typeof meta.sourceTool === 'string' && meta.sourceTool.trim()) entry.sourceTools.add(meta.sourceTool.trim());
+    if (typeof meta.agentName === 'string' && meta.agentName.trim()) entry.agentNames.add(meta.agentName.trim());
+    if (typeof meta.source === 'string' && meta.source.trim()) entry.sources.add(meta.source.trim());
+
+    const seq = Number.isFinite(meta.seq) ? Number(meta.seq) : null;
+    const timestamp = ensureString(meta.timestamp, '').trim();
+    if (seq != null) {
+      if (seq >= entry.latestSeq) {
+        entry.latestSeq = seq;
+        if (timestamp) entry.latestTimestamp = timestamp;
+      }
+    } else if (timestamp && !entry.latestTimestamp) {
+      entry.latestTimestamp = timestamp;
+    }
+  };
+
+  const addWorkspaceRefs = (candidate, meta = {}) => {
+    for (const ref of extractWorkspaceRefsForUi(candidate, Math.max(maxItems * 4, 120))) {
+      upsertPath(ref.path, {
+        ...meta,
+        kind: ref.kind || meta.kind,
+        operation: ref.operation || meta.operation,
+        sourceTool: ref.sourceTool || meta.sourceTool,
+      });
+    }
+  };
+
+  const workspace = run?.workspace && typeof run.workspace === 'object' ? run.workspace : null;
+  const userUploads = Array.isArray(workspace?.userUploads) ? workspace.userUploads : [];
+
+  upsertPath('inputs/run_inputs.json', { kind: 'file', source: 'bootstrap' });
+  upsertPath('inputs/run_context.json', { kind: 'file', source: 'bootstrap' });
+  if (userUploads.length > 0) {
+    upsertPath('inputs/uploaded_files_manifest.json', { kind: 'file', source: 'bootstrap' });
+  }
+  for (const upload of userUploads) {
+    upsertPath(upload?.relativePath, { kind: 'file', source: 'uploaded_input' });
+    upsertPath(upload?.metadataPath, { kind: 'file', source: 'upload_metadata' });
+  }
+
+  addWorkspaceRefs(run?.outputs?.workspaceRefs, { source: 'workflow_output' });
+
+  for (const log of sortedLogs(run.logs || [])) {
+    const nodeId = ensureString(log?.nodeId, '').trim();
+    const agentName = nodeId ? nodeNameById.get(nodeId) || nodeId : '';
+    const meta = {
+      source: 'run_log',
+      seq: log?.seq,
+      timestamp: log?.timestamp,
+      agentName,
+    };
+    addWorkspaceRefs(log?.payload?.workspaceRefs, meta);
+    addWorkspaceRefs(log?.payload?.packet?.payload?.workspaceRefs, { ...meta, source: 'handoff' });
+  }
+
+  for (const nodeRun of nodeRuns) {
+    const agentName = ensureString(nodeRun?.name, '').trim() || ensureString(nodeRun?.nodeId, '').trim();
+    addWorkspaceRefs(nodeRun?.output?.data?.workspaceRefs, {
+      source: 'node_output',
+      agentName,
+    });
+  }
+
+  return Array.from(filesByPath.values())
+    .sort((a, b) => {
+      const seqDiff = (b.latestSeq ?? -1) - (a.latestSeq ?? -1);
+      if (seqDiff) return seqDiff;
+      if (a.latestTimestamp && b.latestTimestamp && a.latestTimestamp !== b.latestTimestamp) {
+        return b.latestTimestamp.localeCompare(a.latestTimestamp);
+      }
+      return a.path.localeCompare(b.path);
+    })
+    .slice(0, maxItems)
+    .map((entry) => ({
+      path: entry.path,
+      kinds: Array.from(entry.kinds),
+      operations: Array.from(entry.operations),
+      sourceTools: Array.from(entry.sourceTools),
+      agentNames: Array.from(entry.agentNames),
+      sources: Array.from(entry.sources),
+      mentions: entry.mentions,
+      latestSeq: entry.latestSeq,
+      latestTimestamp: entry.latestTimestamp || null,
+      sourceOrder: entry.sourceOrder,
+    }));
+}
+
+function buildRunActivityEntries(run, selectedNodeId = '', limit = 200) {
+  if (!run) return [];
+  const nodeById = new Map((Array.isArray(run.nodeRuns) ? run.nodeRuns : []).map((nodeRun) => [nodeRun.nodeId, nodeRun]));
+  const logs = sortedLogs(run.logs || [])
+    .filter((log) => !selectedNodeId || log.nodeId === selectedNodeId)
+    .slice(-limit);
+
+  return logs.map((log) => {
+    const payload = log?.payload && typeof log.payload === 'object' ? log.payload : {};
+    const nodeRun = nodeById.get(log.nodeId || '');
+    const nodeName = ensureString(nodeRun?.name || log.nodeId, '');
+    const workspaceRefs = extractWorkspaceRefsForUi(
+      payload.workspaceRefs || payload?.packet?.payload?.workspaceRefs,
+      8
+    );
+    const codePreviews = extractCodePreviewsFromLog(log, 3);
+
+    let streamKind = 'event';
+    if (log.category === 'thinking') streamKind = 'thinking';
+    else if (log.category === 'handoff') streamKind = 'handoff';
+    else if (log.category === 'control' && log.title === 'Tool call requested') streamKind = 'tool-request';
+    else if (log.category === 'output' && log.title === 'Tool call completed') streamKind = 'tool-result';
+    else if (log.category === 'output' && log.title === 'Agent output produced') streamKind = 'agent-output';
+    else if (log.category === 'error') streamKind = 'error';
+
+    const summary = ensureString(log.message, '') || ensureString(log.title, 'Log event');
+    return {
+      id: log.id,
+      seq: Number.isFinite(log.seq) ? log.seq : 0,
+      timestamp: log.timestamp,
+      category: log.category,
+      title: log.title,
+      message: summary,
+      nodeId: log.nodeId || '',
+      nodeName,
+      streamKind,
+      workspaceRefs,
+      codePreviews,
+      highlights: extractLogHighlights(log),
+      payload,
+    };
+  });
+}
+
+function extractLogHighlights(log) {
+  const payload = log?.payload && typeof log.payload === 'object' ? log.payload : null;
+  const highlights = [];
+  if (!payload) return highlights;
+
+  if (log.category === 'lifecycle' && log.title === 'Run started') {
+    const inputKeys = Array.isArray(payload.inputKeys) ? payload.inputKeys : [];
+    const requested = Array.isArray(payload.requestedDeliverables) ? payload.requestedDeliverables : [];
+    if (inputKeys.length) highlights.push(`Collected ${inputKeys.length} run input field${inputKeys.length === 1 ? '' : 's'}`);
+    if (requested.length) highlights.push(`Requested ${requested.length} deliverable${requested.length === 1 ? '' : 's'}`);
+    if (ensureString(payload.workspaceDirectory, '')) highlights.push(`Workspace: ${payload.workspaceDirectory}`);
+    return highlights;
+  }
+
+  if (log.category === 'input') {
+    if (log.title === 'Run workspace ready') {
+      if (ensureString(payload.root, '')) highlights.push(`Workspace root: ${payload.root}`);
+      const uploadCount = Number.isFinite(payload.userUploadCount) ? payload.userUploadCount : 0;
+      highlights.push(
+        uploadCount > 0
+          ? `Copied ${uploadCount} uploaded file${uploadCount === 1 ? '' : 's'} into workspace`
+          : 'No uploaded files were provided'
+      );
+      if (ensureString(payload.inputsFile, '')) highlights.push(`Inputs snapshot: ${payload.inputsFile}`);
+      return highlights;
+    }
+
+    const runInputs = payload.runInputs && typeof payload.runInputs === 'object' ? payload.runInputs : {};
+    const handoffs = Array.isArray(payload.upstreamHandoffs) ? payload.upstreamHandoffs : [];
+    highlights.push(
+      `${Object.keys(runInputs).length} workflow input field${Object.keys(runInputs).length === 1 ? '' : 's'} available`
+    );
+    if (ensureString(payload?.workspace?.root, '')) {
+      highlights.push('Shared workspace mounted for this agent');
+    }
+    if (handoffs.length > 0) {
+      const handoffLabels = handoffs
+        .map((item) => ensureString(item?.fromNodeName || item?.fromNodeId, '').trim())
+        .filter(Boolean)
+        .slice(0, 3);
+      if (handoffLabels.length > 0) {
+        highlights.push(`Using ${handoffs.length} upstream handoff${handoffs.length === 1 ? '' : 's'} from ${handoffLabels.join(', ')}`);
+      } else {
+        highlights.push(`Using ${handoffs.length} upstream handoff${handoffs.length === 1 ? '' : 's'}`);
+      }
+      const totalWorkspaceRefs = handoffs.reduce(
+        (sum, item) => sum + (Number.isFinite(item?.workspaceRefCount) ? item.workspaceRefCount : 0),
+        0
+      );
+      if (totalWorkspaceRefs > 0) {
+        const previewRefs = handoffs
+          .flatMap((item) => (Array.isArray(item?.workspaceRefs) ? item.workspaceRefs : []))
+          .filter((path) => typeof path === 'string' && path.trim())
+          .slice(0, 4);
+        highlights.push(
+          previewRefs.length > 0
+            ? `Received ${totalWorkspaceRefs} workspace reference${totalWorkspaceRefs === 1 ? '' : 's'} (${previewRefs.join(', ')})`
+            : `Received ${totalWorkspaceRefs} workspace reference${totalWorkspaceRefs === 1 ? '' : 's'}`
+        );
+      }
+    } else {
+      highlights.push('No upstream handoffs for this step');
+    }
+    return highlights;
+  }
+
+  if (log.category === 'handoff') {
+    const source = ensureString(payload.source, '');
+    const target = ensureString(payload.target, '');
+    const packet = payload.packet && typeof payload.packet === 'object' ? payload.packet : {};
+    const packetType = ensureString(packet.packetType || payload.handoff, '');
+    const missing = Array.isArray(packet.missingRequiredFields) ? packet.missingRequiredFields : [];
+    const workspaceRefs = extractWorkspaceRefsForUi(packet?.payload?.workspaceRefs);
+    if (source && target) highlights.push(`Passed handoff ${source} → ${target}`);
+    if (packetType) highlights.push(`Packet type: ${packetType}`);
+    if (workspaceRefs.length > 0) {
+      highlights.push(`Shared ${workspaceRefs.length} workspace ref${workspaceRefs.length === 1 ? '' : 's'}`);
+      highlights.push(`Refs: ${workspaceRefs.slice(0, 3).map((ref) => ref.path).join(', ')}`);
+    }
+    if (missing.length > 0) highlights.push(`Missing required fields: ${missing.join(', ')}`);
+    return highlights;
+  }
+
+  if (log.category === 'control' && log.title === 'Tool call requested') {
+    const tool = ensureString(payload.tool, '');
+    const argsPayload = payload.args && typeof payload.args === 'object' ? payload.args : {};
+    const args = Object.keys(argsPayload);
+    if (tool) highlights.push(`Requested tool: ${tool}`);
+    if (tool === 'workspace_write_file') {
+      const batchFiles = argsPayload.files && typeof argsPayload.files === 'object' ? Object.keys(argsPayload.files) : [];
+      if (batchFiles.length > 0) {
+        highlights.push(`Writing ${batchFiles.length} file${batchFiles.length === 1 ? '' : 's'} to workspace`);
+        highlights.push(`Targets: ${batchFiles.slice(0, 4).join(', ')}`);
+      } else if (ensureString(argsPayload.path, '')) {
+        highlights.push(`Target: ${argsPayload.path}`);
+      }
+    } else if (tool === 'workspace_read_file' && ensureString(argsPayload.path, '')) {
+      highlights.push(`Reading ${argsPayload.path}`);
+    } else if (tool === 'workspace_exec') {
+      if (ensureString(argsPayload.cwd, '')) highlights.push(`CWD: ${argsPayload.cwd}`);
+      if (ensureString(argsPayload.language, '')) highlights.push(`Language: ${argsPayload.language}`);
+    }
+    if (args.length) highlights.push(`Arguments: ${args.join(', ')}`);
+    return highlights;
+  }
+
+  if (log.category === 'output' && log.title === 'Tool call completed') {
+    const tool = ensureString(payload.tool, '');
+    const result = payload.result && typeof payload.result === 'object' ? payload.result : {};
+    const topKeys = Object.keys(result).slice(0, 5);
+    const workspaceRefs = extractWorkspaceRefsForUi(payload.workspaceRefs);
+    if (tool) highlights.push(`Tool finished: ${tool}`);
+    if (workspaceRefs.length > 0) {
+      highlights.push(`Workspace refs: ${workspaceRefs.slice(0, 4).map((ref) => ref.path).join(', ')}`);
+    }
+    if (tool === 'workspace_exec') {
+      if (Number.isFinite(result.return_code)) highlights.push(`Exit code: ${result.return_code}`);
+      const artifactCount = Array.isArray(result.artifacts) ? result.artifacts.length : 0;
+      if (artifactCount > 0) highlights.push(`Artifacts seen: ${artifactCount}`);
+    }
+    if (topKeys.length) highlights.push(`Returned fields: ${topKeys.join(', ')}`);
+    return highlights;
+  }
+
+  if (log.category === 'output' && log.title === 'Agent output produced') {
+    if (Number.isFinite(payload.toolCallCount)) {
+      highlights.push(`${payload.toolCallCount} tool call${payload.toolCallCount === 1 ? '' : 's'} used`);
+    }
+    if (Number.isFinite(payload.stepCount)) {
+      highlights.push(`Completed in ${payload.stepCount} decision step${payload.stepCount === 1 ? '' : 's'}`);
+    }
+    if (Number.isFinite(payload.workspaceRefCount) && payload.workspaceRefCount > 0) {
+      highlights.push(`Recorded ${payload.workspaceRefCount} workspace reference${payload.workspaceRefCount === 1 ? '' : 's'}`);
+    }
+    const workspaceRefs = extractWorkspaceRefsForUi(payload.workspaceRefs);
+    if (workspaceRefs.length > 0) {
+      highlights.push(`Refs: ${workspaceRefs.slice(0, 4).map((ref) => ref.path).join(', ')}`);
+    }
+    return highlights;
+  }
+
+  if (log.category === 'output' && log.title === 'Workspace references recorded') {
+    const refs = extractWorkspaceRefsForUi(payload.workspaceRefs);
+    if (refs.length > 0) {
+      highlights.push(`Downstream can reuse: ${refs.slice(0, 5).map((ref) => ref.path).join(', ')}`);
+    }
+    return highlights;
+  }
+
+  if (log.category === 'output' && log.title === 'Workflow outputs finalized') {
+    if (Number.isFinite(payload.deliverableCount)) {
+      highlights.push(`Prepared ${payload.deliverableCount} deliverable${payload.deliverableCount === 1 ? '' : 's'}`);
+    }
+    if (ensureString(payload.artifactDirectory, '')) {
+      highlights.push(`Saved artifacts to ${payload.artifactDirectory}`);
+    }
+    if (ensureString(payload.workspaceDirectory, '')) {
+      highlights.push(`Workspace saved at ${payload.workspaceDirectory}`);
+    }
+    return highlights;
+  }
+
+  if (log.category === 'error') {
+    if (ensureString(payload.error, '')) highlights.push(`Error: ${truncate(payload.error, 180)}`);
+    if (ensureString(payload.tool, '')) highlights.push(`Tool: ${payload.tool}`);
+    return highlights;
+  }
+
+  return highlights;
+}
+
+function summarizeObjectEntriesForUi(value, maxItems = 8) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+  return Object.entries(value)
+    .slice(0, maxItems)
+    .map(([key, item]) => `${humanizeIdentifier(key)}: ${summarizeValueForUi(item)}`);
+}
+
+function buildRunStatusNarrative(run) {
+  if (!run) return { title: 'No run selected', body: '', bullets: [] };
+  const logs = sortedLogs(run.logs || []);
+  const lastLog = logs[logs.length - 1] || null;
+  const nodeRuns = Array.isArray(run.nodeRuns) ? run.nodeRuns : [];
+  const activeNode =
+    nodeRuns.find((nodeRun) => nodeRun.nodeId === run.activeNodeId) ||
+    nodeRuns.find((nodeRun) => nodeRun.status === 'running') ||
+    null;
+  const completed = run.progress?.completedNodes || 0;
+  const total = run.progress?.totalNodes || nodeRuns.length;
+  const artifactDirectory =
+    ensureString(run?.artifactDirectory, '') || ensureString(run?.outputs?.artifactDirectory, '') || '';
+  const workspaceDirectory =
+    ensureString(run?.workspaceDirectory, '') || ensureString(run?.outputs?.workspaceDirectory, '') || '';
+
+  let title = 'Run queued';
+  let body = 'Waiting for the runtime to start.';
+  const bullets = [];
+
+  if (run.status === 'running') {
+    title = activeNode ? `Working on ${activeNode.name || activeNode.nodeId}` : 'Workflow is running';
+    body = activeNode
+      ? `${completed} of ${total} agents finished. ${activeNode.name || activeNode.nodeId} is currently executing.`
+      : `${completed} of ${total} agents finished.`;
+  } else if (run.status === 'success') {
+    title = 'Workflow completed successfully';
+    body = `${completed || total} of ${total} agents finished and deliverables are ready.`;
+  } else if (run.status === 'failed') {
+    title = 'Workflow run failed';
+    body = ensureString(run.error, '').trim() || 'The runtime reported a failure.';
+  } else if (run.status === 'cancelled') {
+    title = 'Workflow run cancelled';
+    body = `${completed} of ${total} agents finished before cancellation.`;
+  }
+
+  if (lastLog?.message) {
+    bullets.push(`Latest event: ${truncate(lastLog.message, 200)}`);
+  }
+  if (activeNode && activeNode.outputSummary && run.status === 'running') {
+    bullets.push(`Current agent context: ${truncate(activeNode.outputSummary, 160)}`);
+  }
+  if (artifactDirectory) {
+    bullets.push(`Artifacts folder: ${artifactDirectory}`);
+  }
+  if (workspaceDirectory) {
+    bullets.push(`Shared workspace: ${workspaceDirectory}`);
+  }
+  if (Array.isArray(run.deliverables) && run.deliverables.length > 0) {
+    bullets.push(`Deliverables available: ${run.deliverables.map((item) => item?.name).filter(Boolean).slice(0, 4).join(', ')}`);
+  }
+
+  return { title, body, bullets };
+}
+
 function isTerminalRunStatus(status) {
   return ['success', 'failed', 'cancelled'].includes(ensureString(status).toLowerCase());
 }
@@ -718,6 +1347,15 @@ function normalizeWorkflowRun(run) {
     error: ensureString(run?.error, '') || null,
     inputs: run?.inputs && typeof run.inputs === 'object' ? run.inputs : {},
     outputs,
+    artifactDirectory: ensureString(run?.artifactDirectory, '') || null,
+    workspaceDirectory: ensureString(run?.workspaceDirectory, '') || ensureString(outputs?.workspaceDirectory, '') || null,
+    workspaceDirectories:
+      run?.workspaceDirectories && typeof run.workspaceDirectories === 'object'
+        ? run.workspaceDirectories
+        : outputs?.workspaceDirectories && typeof outputs.workspaceDirectories === 'object'
+        ? outputs.workspaceDirectories
+        : {},
+    workspace: run?.workspace && typeof run.workspace === 'object' ? run.workspace : null,
     deliverables: Array.isArray(run?.deliverables) ? run.deliverables : [],
     inputRequests: Array.isArray(run?.inputRequests) ? run.inputRequests : [],
     pendingInputRequest: run?.pendingInputRequest ?? null,
@@ -802,6 +1440,20 @@ async function getWorkflowRunApi(runId) {
   }
   const data = await response.json();
   return normalizeWorkflowRun(data);
+}
+
+async function getWorkflowRunWorkspaceFileApi(runId, filePath, maxChars = 80_000) {
+  const query = new URLSearchParams({
+    path: String(filePath || ''),
+    max_chars: String(maxChars),
+  });
+  const response = await apiFetch(
+    `/api/workflow-runs/${encodeURIComponent(runId)}/workspace-file?${query.toString()}`
+  );
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to load workspace file preview'));
+  }
+  return response.json();
 }
 
 async function cancelWorkflowRunApi(runId) {
@@ -1885,16 +2537,6 @@ function LoginCard({ password, onPasswordChange, onSubmit, loading, error }) {
   );
 }
 
-function StatCard({ label, value, meta }) {
-  return (
-    <article className="stat-card">
-      <p className="stat-label">{label}</p>
-      <p className="stat-value">{value}</p>
-      <p className="stat-meta">{meta}</p>
-    </article>
-  );
-}
-
 function EmptyState({ title, body, actionLabel, onAction }) {
   return (
     <div className="empty-state" role="status">
@@ -1911,6 +2553,7 @@ function EmptyState({ title, body, actionLabel, onAction }) {
 
 function StatusPill({ status }) {
   const safe = ensureString(status, 'unknown').toLowerCase();
+  if (safe === 'queued') return null;
   return <span className={`status-pill ${safe}`}>{safe}</span>;
 }
 
@@ -2132,8 +2775,397 @@ function RunWorkflowModal({ open, workflow, onClose, onSubmit, loading, error })
   );
 }
 
+function StructuredValueView({ value, depth = 0, maxDepth = 4, maxItems = 12 }) {
+  if (value == null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    const display =
+      value == null ? 'null' : typeof value === 'string' ? (value.length ? value : '""') : String(value);
+    return <code className="structured-json-leaf">{truncate(display, 500)}</code>;
+  }
+
+  if (depth >= maxDepth) {
+    return <code className="structured-json-leaf">{summarizeValueForUi(value)}</code>;
+  }
+
+  if (Array.isArray(value)) {
+    const items = value.slice(0, maxItems);
+    const truncatedCount = value.length - items.length;
+    return (
+      <details className="structured-json-group" open={depth < 1}>
+        <summary>
+          Array <span className="chip subtle-chip">{value.length}</span>
+        </summary>
+        <div className="structured-json-children">
+          {items.map((item, index) => (
+            <div key={`arr-${depth}-${index}`} className="structured-json-row">
+              <span className="structured-json-key">[{index}]</span>
+              <div className="structured-json-value">
+                <StructuredValueView value={item} depth={depth + 1} maxDepth={maxDepth} maxItems={maxItems} />
+              </div>
+            </div>
+          ))}
+          {truncatedCount > 0 ? <p className="hint">+{truncatedCount} more item{truncatedCount === 1 ? '' : 's'}</p> : null}
+        </div>
+      </details>
+    );
+  }
+
+  const objectValue = value && typeof value === 'object' ? value : {};
+  const allKeys = Object.keys(objectValue);
+  const entries = Object.entries(objectValue).slice(0, maxItems);
+  const truncatedKeys = allKeys.length - entries.length;
+  return (
+    <details className="structured-json-group" open={depth < 1}>
+      <summary>
+        Object <span className="chip subtle-chip">{allKeys.length}</span>
+      </summary>
+      <div className="structured-json-children">
+        {entries.map(([key, item]) => (
+          <div key={`${depth}-${key}`} className="structured-json-row">
+            <span className="structured-json-key">{key}</span>
+            <div className="structured-json-value">
+              <StructuredValueView value={item} depth={depth + 1} maxDepth={maxDepth} maxItems={maxItems} />
+            </div>
+          </div>
+        ))}
+        {truncatedKeys > 0 ? <p className="hint">+{truncatedKeys} more field{truncatedKeys === 1 ? '' : 's'}</p> : null}
+      </div>
+    </details>
+  );
+}
+
+function AgentSwarmPanel({ run, selectedNodeId, onSelectNodeId }) {
+  const nodeRuns = Array.isArray(run?.nodeRuns) ? run.nodeRuns : [];
+
+  return (
+    <section className="panel-surface run-sandbox-panel">
+      <div className="section-head">
+        <h2>Agent Sandbox</h2>
+        <span className="chip subtle-chip">{nodeRuns.length}</span>
+      </div>
+      <p className="surface-copy">Shared workspace + handoffs + file references. Click an agent to inspect and follow its trail.</p>
+      <div className="agent-swarm-list">
+        {nodeRuns.map((nodeRun) => {
+          const workspaceRefs = collectNodeWorkspaceRefs(nodeRun);
+          const nodeLogs = sortedLogs(nodeRun.logs || []);
+          const lastThinking = nodeLogs.filter((log) => log.category === 'thinking').at(-1);
+          const lastToolEvent = nodeLogs.filter((log) => log.title === 'Tool call requested' || log.title === 'Tool call completed').at(-1);
+
+          return (
+            <button
+              key={`${run.id}-${nodeRun.nodeId}`}
+              type="button"
+              className={`agent-swarm-card ${selectedNodeId === nodeRun.nodeId ? 'selected' : ''} ${nodeRun.status}`}
+              onClick={() => onSelectNodeId?.(nodeRun.nodeId)}
+            >
+              <div className="agent-swarm-card-head">
+                <div>
+                  <p className="agent-swarm-title">{nodeRun.name || nodeRun.nodeId}</p>
+                  <p className="agent-swarm-meta">
+                    {nodeRun.nodeId} • {nodeRun.role || 'Agent'} • {formatDuration(nodeRun.durationMs)}
+                  </p>
+                </div>
+                <StatusPill status={nodeRun.status} />
+              </div>
+              {lastThinking?.message ? <p className="agent-swarm-trace">{truncate(lastThinking.message, 140)}</p> : null}
+              {lastToolEvent?.payload?.tool ? (
+                <p className="agent-swarm-tool">
+                  {lastToolEvent.title === 'Tool call requested' ? 'Requesting' : 'Completed'} <code>{lastToolEvent.payload.tool}</code>
+                </p>
+              ) : null}
+              {workspaceRefs.length > 0 ? (
+                <ul className="agent-swarm-files">
+                  {workspaceRefs.slice(0, 3).map((ref, index) => (
+                    <li key={`${nodeRun.nodeId}-ref-${index}`}>{truncate(ref.path, 58)}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="hint">No workspace references yet.</p>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function AgentDebugWorkbench({ selectedNode }) {
+  if (!selectedNode) {
+    return (
+      <section className="panel-surface run-sandbox-panel agent-debug-workbench-panel">
+        <EmptyState title="No agent selected" body="Select an agent to inspect its parsed inputs, outputs, workspace references, and reasoning trace." />
+      </section>
+    );
+  }
+
+  const thinkingLogs = sortedLogs(selectedNode.logs || []).filter((log) => log.category === 'thinking');
+  const recentEvents = sortedLogs(selectedNode.logs || [])
+    .filter((log) => ['control', 'handoff', 'output', 'error'].includes(log.category))
+    .slice(-10)
+    .reverse();
+  const workspaceRefs = collectNodeWorkspaceRefs(selectedNode);
+
+  return (
+    <section className="panel-surface run-sandbox-panel agent-debug-workbench-panel">
+      <div className="section-head">
+        <h2>Agent Debugger</h2>
+        <StatusPill status={selectedNode.status} />
+      </div>
+      <p className="surface-copy">
+        <strong>{selectedNode.name || selectedNode.nodeId}</strong> · {selectedNode.role || 'Agent'}
+      </p>
+      <div className="kv-grid">
+        <div className="kv-card">
+          <span>Logs</span>
+          <strong>{selectedNode.logs?.length || 0}</strong>
+        </div>
+        <div className="kv-card">
+          <span>Refs</span>
+          <strong>{workspaceRefs.length}</strong>
+        </div>
+        <div className="kv-card">
+          <span>Started</span>
+          <strong>{formatDateTime(selectedNode.startedAt)}</strong>
+        </div>
+        <div className="kv-card">
+          <span>Finished</span>
+          <strong>{formatDateTime(selectedNode.finishedAt)}</strong>
+        </div>
+      </div>
+
+      <div className="run-debug-sections">
+        {/* Thinking Timeline — shows each agent decision step */}
+        <section className="panel-surface nested-panel">
+          <div className="section-head">
+            <h2>Thinking Timeline</h2>
+            <span className="chip subtle-chip">{thinkingLogs.length} steps</span>
+          </div>
+          {thinkingLogs.length > 0 ? (
+            <div className="stack-list">
+              {thinkingLogs.map((log) => {
+                const payload = log.payload && typeof log.payload === 'object' ? log.payload : {};
+                const turn = payload.turn || '';
+                const action = payload.action || '';
+                const toolRequested = payload.toolRequested || '';
+                const toolReason = payload.toolReason || '';
+                const summaryPreview = payload.summaryPreview || '';
+                const dataKeys = Array.isArray(payload.dataKeys) ? payload.dataKeys : [];
+                return (
+                  <div key={log.id} className={`run-thinking-step ${action === 'final' ? 'thinking-final' : action === 'tool' ? 'thinking-tool' : ''}`}>
+                    <div className="run-thinking-head">
+                      <span className="chip subtle-chip">Turn {turn || '?'}</span>
+                      <span className={`chip ${action === 'final' ? 'success-chip' : action === 'tool' ? 'tool-chip' : 'subtle-chip'}`}>
+                        {action === 'final' ? 'Finalizing' : action === 'tool' ? `Calling ${toolRequested}` : action || 'thinking'}
+                      </span>
+                      <span className="run-thinking-time">{formatDateTime(log.timestamp)}</span>
+                    </div>
+                    <p className="run-thinking-note">{log.message || '—'}</p>
+                    {toolReason ? <p className="run-thinking-reason"><strong>Reason:</strong> {toolReason}</p> : null}
+                    {summaryPreview ? <p className="run-thinking-reason"><strong>Summary:</strong> {summaryPreview}</p> : null}
+                    {dataKeys.length > 0 ? (
+                      <p className="run-thinking-reason"><strong>Output keys:</strong> {dataKeys.join(', ')}</p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="surface-copy">No thinking steps recorded yet. Steps appear in real-time as the agent works.</p>
+          )}
+        </section>
+
+        {/* Tool Call Timeline — shows each tool invocation as a card */}
+        <section className="panel-surface nested-panel">
+          <div className="section-head">
+            <h2>Tool Calls</h2>
+            <span className="chip subtle-chip">
+              {sortedLogs(selectedNode.logs || []).filter((log) =>
+                (log.category === 'control' && log.title === 'Tool call requested') ||
+                (log.category === 'output' && log.title === 'Tool call completed') ||
+                (log.category === 'error' && log.title === 'Tool call failed')
+              ).length}
+            </span>
+          </div>
+          {(() => {
+            const toolLogs = sortedLogs(selectedNode.logs || []).filter((log) =>
+              (log.category === 'control' && log.title === 'Tool call requested') ||
+              (log.category === 'output' && log.title === 'Tool call completed') ||
+              (log.category === 'error' && log.title === 'Tool call failed')
+            );
+            if (toolLogs.length === 0) {
+              return <p className="surface-copy">No tool calls recorded yet.</p>;
+            }
+            // Group into request/result pairs
+            const pairs = [];
+            let currentRequest = null;
+            for (const log of toolLogs) {
+              if (log.title === 'Tool call requested') {
+                if (currentRequest) pairs.push({ request: currentRequest, result: null });
+                currentRequest = log;
+              } else {
+                pairs.push({ request: currentRequest, result: log });
+                currentRequest = null;
+              }
+            }
+            if (currentRequest) pairs.push({ request: currentRequest, result: null });
+
+            return (
+              <div className="stack-list">
+                {pairs.map((pair, index) => {
+                  const req = pair.request?.payload || {};
+                  const res = pair.result?.payload || {};
+                  const toolName = req.tool || res.tool || '?';
+                  const isError = pair.result?.category === 'error';
+                  const durationMs = res.durationMs;
+                  const wsRefs = extractWorkspaceRefsForUi(res.workspaceRefs, 6);
+                  return (
+                    <article key={pair.request?.id || pair.result?.id || index} className={`run-tool-call-card ${isError ? 'tool-error' : pair.result ? 'tool-success' : 'tool-pending'}`}>
+                      <div className="run-tool-call-head">
+                        <code className="run-tool-name">{toolName}</code>
+                        {Number.isFinite(durationMs) ? <span className="chip subtle-chip">{durationMs}ms</span> : null}
+                        <span className={`chip ${isError ? 'error-chip' : pair.result ? 'success-chip' : 'subtle-chip'}`}>
+                          {isError ? 'Failed' : pair.result ? 'Success' : 'Pending...'}
+                        </span>
+                      </div>
+                      {req.reason ? <p className="run-tool-reason">{req.reason}</p> : null}
+                      {req.args && typeof req.args === 'object' && Object.keys(req.args).length > 0 ? (
+                        <details className="run-json-disclosure">
+                          <summary>Input args</summary>
+                          <div className="run-parsed-json">
+                            <StructuredValueView value={req.args} maxDepth={3} maxItems={10} />
+                          </div>
+                        </details>
+                      ) : null}
+                      {res.result != null ? (
+                        <details className="run-json-disclosure">
+                          <summary>Result</summary>
+                          <div className="run-parsed-json">
+                            <StructuredValueView value={res.result} maxDepth={3} maxItems={10} />
+                          </div>
+                        </details>
+                      ) : null}
+                      {isError && res.error ? (
+                        <div className="workflow-warning">{res.error}</div>
+                      ) : null}
+                      {wsRefs.length > 0 ? (
+                        <div className="run-activity-ref-wrap">
+                          {wsRefs.map((ref, ri) => (
+                            <span key={`tc-ref-${index}-${ri}`} className="run-activity-ref-chip">
+                              <code>{truncate(ref.path, 48)}</code>
+                              {ref.operation ? <small>{ref.operation}</small> : null}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </section>
+
+        {/* Workspace References */}
+        <section className="panel-surface nested-panel">
+          <div className="section-head">
+            <h2>Workspace References</h2>
+            <span className="chip subtle-chip">{workspaceRefs.length}</span>
+          </div>
+          {workspaceRefs.length > 0 ? (
+            <div className="workspace-file-list">
+              {workspaceRefs.slice(0, 24).map((ref, index) => (
+                <div key={`${selectedNode.nodeId}-ws-${index}`} className="workspace-ref-item">
+                  <code className="workspace-ref-path">{ref.path}</code>
+                  <div className="workspace-file-chip-row">
+                    {ref.operation ? <span className="chip subtle-chip">{ref.operation}</span> : null}
+                    {ref.kind ? <span className="chip subtle-chip">{ref.kind}</span> : null}
+                    {ref.sourceTool ? <span className="chip subtle-chip">{ref.sourceTool}</span> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="surface-copy">No workspace references captured yet for this agent.</p>
+          )}
+        </section>
+
+        {/* Parsed Inputs */}
+        <section className="panel-surface nested-panel">
+          <div className="section-head">
+            <h2>Parsed Inputs (Upstream Handoffs)</h2>
+          </div>
+          {Array.isArray(selectedNode.upstreamInputs) && selectedNode.upstreamInputs.length > 0 ? (
+            <div className="stack-list">
+              {selectedNode.upstreamInputs.map((handoff, index) => {
+                const fromName = ensureString(handoff?.fromNodeName || handoff?.fromNodeId, 'upstream');
+                const packetType = handoff?.packet?.packetType || handoff?.packetType || '';
+                const payloadObj = handoff?.packet?.payload || handoff?.payload || {};
+                return (
+                  <div key={`input-${index}`} className="run-handoff-card">
+                    <div className="run-handoff-head">
+                      <strong>{fromName}</strong>
+                      {packetType ? <span className="chip subtle-chip">{packetType}</span> : null}
+                    </div>
+                    {handoff?.packetSummary ? <p className="surface-copy">{handoff.packetSummary}</p> : null}
+                    <details className="run-json-disclosure" open={index === 0}>
+                      <summary>Handoff payload</summary>
+                      <div className="run-parsed-json">
+                        <StructuredValueView value={payloadObj} maxDepth={4} maxItems={12} />
+                      </div>
+                    </details>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div>
+              <p className="surface-copy">No structured upstream handoffs. Showing raw input data:</p>
+              <StructuredValueView value={selectedNode.upstreamInputs || []} maxDepth={4} maxItems={10} />
+            </div>
+          )}
+        </section>
+
+        {/* Parsed Output */}
+        <section className="panel-surface nested-panel">
+          <div className="section-head">
+            <h2>Parsed Output</h2>
+            {selectedNode?.output?.data && typeof selectedNode.output.data === 'object' ? (
+              <span className="chip subtle-chip">{Object.keys(selectedNode.output.data).length} keys</span>
+            ) : null}
+          </div>
+          <p className="surface-copy">{ensureString(selectedNode?.output?.summary, '').trim() || 'No output summary recorded yet.'}</p>
+          {selectedNode?.output?.data && typeof selectedNode.output.data === 'object' ? (
+            <div className="stack-list">
+              {Object.entries(selectedNode.output.data).map(([key, value]) => (
+                <details key={`output-${key}`} className="run-json-disclosure" open={['deliverables', 'final_markdown'].includes(key)}>
+                  <summary>
+                    <code>{key}</code>
+                    <span className="chip subtle-chip">{typeof value === 'string' ? `${value.length} chars` : Array.isArray(value) ? `${value.length} items` : typeof value}</span>
+                  </summary>
+                  <div className="run-parsed-json">
+                    <StructuredValueView value={value} maxDepth={4} maxItems={12} />
+                  </div>
+                </details>
+              ))}
+            </div>
+          ) : (
+            <StructuredValueView value={selectedNode.output || {}} maxDepth={4} maxItems={10} />
+          )}
+          <details className="run-json-disclosure">
+            <summary>Raw output JSON</summary>
+            <pre className="code-block">{formatJsonPreview(selectedNode.output || {})}</pre>
+          </details>
+        </section>
+      </div>
+    </section>
+  );
+}
+
 function RunLogFeed({ logs, selectedNodeId = '' }) {
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [showRawPayloads, setShowRawPayloads] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const logEndRef = useRef(null);
 
   const filteredLogs = (Array.isArray(logs) ? logs : []).filter((log) => {
     if (categoryFilter !== 'all' && log.category !== categoryFilter) return false;
@@ -2141,12 +3173,27 @@ function RunLogFeed({ logs, selectedNodeId = '' }) {
     return true;
   });
 
+  // Auto-scroll to bottom when new logs arrive
+  useEffect(() => {
+    if (autoScroll && logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [filteredLogs.length, autoScroll]);
+
   return (
-    <section className="panel-surface">
+    <section className="panel-surface run-log-feed-panel">
       <div className="section-head">
         <h2>Logs</h2>
         <div className="inline-actions">
           <span className="chip subtle-chip">{filteredLogs.length}</span>
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={showRawPayloads}
+              onChange={(event) => setShowRawPayloads(event.target.checked)}
+            />
+            <span>Show Raw JSON</span>
+          </label>
           <select className="select run-log-filter" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
             <option value="all">All</option>
             <option value="input">Inputs</option>
@@ -2157,6 +3204,10 @@ function RunLogFeed({ logs, selectedNodeId = '' }) {
             <option value="control">Control</option>
             <option value="error">Errors</option>
           </select>
+          <label className="checkbox-row">
+            <input type="checkbox" checked={autoScroll} onChange={(event) => setAutoScroll(event.target.checked)} />
+            <span>Auto-scroll</span>
+          </label>
         </div>
       </div>
 
@@ -2167,28 +3218,276 @@ function RunLogFeed({ logs, selectedNodeId = '' }) {
           {filteredLogs
             .slice()
             .sort((a, b) => (a.seq || 0) - (b.seq || 0))
-            .map((log) => (
-              <article key={log.id} className={`run-log-item category-${log.category}`}>
-                <div className="run-log-head">
-                  <div className="run-log-meta">
-                    <span className={`log-category-badge ${log.category}`}>{log.category}</span>
-                    {log.nodeId ? <code>{log.nodeId}</code> : null}
-                    <span>{formatLongDateTime(log.timestamp)}</span>
+            .map((log) => {
+              const highlights = extractLogHighlights(log);
+              const codePreviews = extractCodePreviewsFromLog(log, 2);
+              return (
+                <article key={log.id} className={`run-log-item category-${log.category}`}>
+                  <div className="run-log-head">
+                    <div className="run-log-meta">
+                      <span className={`log-category-badge ${log.category}`}>{humanizeIdentifier(log.category || 'log')}</span>
+                      {log.nodeId ? <code>{log.nodeId}</code> : null}
+                      <span>{formatLongDateTime(log.timestamp)}</span>
+                    </div>
+                    <span className="chip subtle-chip">#{log.seq || 0}</span>
                   </div>
-                  <span className="chip subtle-chip">#{log.seq || 0}</span>
-                </div>
-                <p className="run-log-title">{log.title || 'Log event'}</p>
-                <p className="run-log-message">{log.message || '—'}</p>
-                {log.payload != null ? <pre className="code-block run-log-payload">{formatJsonPreview(log.payload)}</pre> : null}
-              </article>
-            ))}
+                  <p className="run-log-title">{log.title || 'Log event'}</p>
+                  <p className="run-log-message">{log.message || '—'}</p>
+                  {highlights.length > 0 ? (
+                    <ul className="run-log-highlights" aria-label="Event details">
+                      {highlights.map((item, index) => (
+                        <li key={`${log.id}-highlight-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {codePreviews.length > 0 ? (
+                    <div className="run-activity-code-stack">
+                      {codePreviews.map((preview, index) => (
+                        <details key={`${log.id}-code-preview-${index}`} className="run-code-preview-card">
+                          <summary>
+                            <span>{preview.source === 'exec_artifact' ? 'Artifact preview' : 'Code write preview'}</span>
+                            <code>{preview.path}</code>
+                          </summary>
+                          <pre className={`code-block run-activity-code language-${preview.language}`}>{preview.content}</pre>
+                        </details>
+                      ))}
+                    </div>
+                  ) : null}
+                  {log.payload != null ? (
+                    showRawPayloads ? (
+                      <pre className="code-block run-log-payload">{formatJsonPreview(log.payload)}</pre>
+                    ) : (
+                      <details className="run-json-disclosure">
+                        <summary>Raw payload</summary>
+                        <div className="run-parsed-json">
+                          <StructuredValueView value={log.payload} maxDepth={3} maxItems={10} />
+                        </div>
+                        <pre className="code-block run-log-payload">{formatJsonPreview(log.payload)}</pre>
+                      </details>
+                    )
+                  ) : null}
+                </article>
+              );
+            })}
+          <div ref={logEndRef} />
         </div>
       )}
     </section>
   );
 }
 
-function WorkflowRunDetailPanel({ run, onCancelRun, onDeleteRun, onRefreshRun, onOpenTemplate }) {
+/* ─────────────────────────────────────────────────────── */
+/* FileTreeNode – recursive folder/file tree renderer     */
+/* ─────────────────────────────────────────────────────── */
+function FileTreeNode({ node, depth = 0, onSelectFile }) {
+  const [open, setOpen] = useState(depth < 2);
+  const sortedDirs = Array.from(node.children.entries()).sort(([a], [b]) => a.localeCompare(b));
+  const sortedFiles = node.files.slice().sort((a, b) => (a.fileName || '').localeCompare(b.fileName || ''));
+  const hasContent = sortedDirs.length > 0 || sortedFiles.length > 0;
+  if (!hasContent) return null;
+
+  return (
+    <div className="file-tree-level" style={{ paddingLeft: depth > 0 ? 14 : 0 }}>
+      {sortedDirs.map(([dirName, childNode]) => (
+        <div key={`dir-${dirName}`} className="file-tree-dir">
+          <button
+            type="button"
+            className="file-tree-dir-toggle"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+          >
+            <span className="file-tree-icon">{open ? '▾' : '▸'}</span>
+            <span className="file-tree-dir-name">{dirName}/</span>
+            <span className="chip subtle-chip" style={{ fontSize: 9, padding: '1px 5px' }}>
+              {childNode.files.length + Array.from(childNode.children.values()).reduce((n, c) => n + c.files.length, 0)}
+            </span>
+          </button>
+          {open ? <FileTreeNode node={childNode} depth={depth + 1} onSelectFile={onSelectFile} /> : null}
+        </div>
+      ))}
+      {sortedFiles.map((file) => {
+        const lang = guessCodeLanguageFromPath(file.path);
+        return (
+          <button
+            key={file.path}
+            type="button"
+            className="file-tree-file"
+            onClick={() => onSelectFile(file.path)}
+            title={file.path}
+          >
+            <span className="file-tree-icon file-tree-file-icon">
+              {lang === 'markdown' ? '📝' : lang === 'json' ? '{ }' : '📄'}
+            </span>
+            <span className="file-tree-file-name">{file.fileName}</span>
+            {file.operations.length > 0 ? (
+              <div className="workspace-file-chip-row" style={{ marginLeft: 'auto' }}>
+                {file.operations.slice(0, 2).map((op) => (
+                  <span
+                    key={`${file.path}-op-${op}`}
+                    className={`chip ${op === 'write' ? 'success-chip' : op === 'exec' ? 'tool-chip' : 'subtle-chip'}`}
+                    style={{ fontSize: 9, padding: '1px 5px' }}
+                  >
+                    {op}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* FilePreviewModal – popup for rendered file content      */
+/* ─────────────────────────────────────────────────────── */
+function FilePreviewModal({ run, filePath, onClose }) {
+  const [state, setState] = useState({ loading: true, error: '', result: null });
+  const cacheRef = useRef(new Map());
+
+  useEffect(() => {
+    if (!run?.id || !filePath) return;
+    const cacheKey = `${run.id}:${filePath}`;
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached) {
+      setState({ loading: false, error: '', result: cached });
+      return;
+    }
+    let cancelled = false;
+    setState({ loading: true, error: '', result: null });
+    getWorkflowRunWorkspaceFileApi(run.id, filePath, 120_000)
+      .then((payload) => {
+        if (cancelled) return;
+        const result = payload?.result && typeof payload.result === 'object' ? payload.result : null;
+        if (!result) {
+          setState({ loading: false, error: 'No file payload returned.', result: null });
+          return;
+        }
+        cacheRef.current.set(cacheKey, result);
+        setState({ loading: false, error: '', result });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setState({ loading: false, error: err instanceof Error ? err.message : 'Failed to load file', result: null });
+      });
+    return () => { cancelled = true; };
+  }, [run?.id, filePath]);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const preview = state.result;
+  const isBinary = Boolean(preview?.binary);
+  const mime = guessMimeTypeFromPath(filePath);
+  const lang = guessCodeLanguageFromPath(filePath);
+  const isMarkdown = lang === 'markdown';
+  const isImage = isBinary && mime.startsWith('image/');
+  const imagePreviewSrc =
+    isImage && !preview?.truncated && typeof preview?.content_base64 === 'string' && preview.content_base64
+      ? `data:${mime};base64,${preview.content_base64}`
+      : '';
+
+  return (
+    <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal-shell file-preview-modal" role="dialog" aria-modal="true" aria-label={`Preview: ${filePath}`}>
+        <div className="modal-header">
+          <div>
+            <p className="workspace-file-path" style={{ margin: 0 }}><code>{filePath}</code></p>
+            <div className="inline-actions" style={{ marginTop: 6 }}>
+              {state.loading ? <span className="chip subtle-chip">loading</span> : null}
+              {preview?.truncated ? <span className="chip subtle-chip">truncated</span> : null}
+              {Number.isFinite(preview?.size_bytes) ? <span className="chip subtle-chip">{formatBytes(preview.size_bytes)}</span> : null}
+              {!isBinary && Number.isFinite(preview?.line_count) ? <span className="chip subtle-chip">{preview.line_count} lines</span> : null}
+              <span className="chip subtle-chip">{lang}</span>
+            </div>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Close preview">×</button>
+        </div>
+        <div className="modal-body file-preview-modal-body">
+          {state.loading ? (
+            <p className="surface-copy" style={{ padding: 20 }}>Loading file preview…</p>
+          ) : state.error ? (
+            <div className="workflow-warning" role="alert" style={{ margin: 16 }}>{state.error}</div>
+          ) : preview ? (
+            <>
+              {imagePreviewSrc ? (
+                <div className="file-preview-image-wrap">
+                  <img src={imagePreviewSrc} alt={`Preview of ${filePath}`} className="workspace-file-preview-image" />
+                </div>
+              ) : isMarkdown && !isBinary && typeof preview.content === 'string' && preview.content.length > 0 ? (
+                <article
+                  className="file-preview-rendered-md"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(preview.content) }}
+                />
+              ) : !isBinary && typeof preview.content === 'string' && preview.content.length > 0 ? (
+                <pre className={`code-block file-preview-code language-${lang}`}>{preview.content}</pre>
+              ) : isBinary ? (
+                <div className="workflow-warning" style={{ margin: 16 }}>
+                  Binary file cannot be rendered inline.{mime ? ` Detected type: ${mime}.` : ''}
+                </div>
+              ) : (
+                <p className="surface-copy" style={{ padding: 20 }}>This file is empty.</p>
+              )}
+            </>
+          ) : (
+            <p className="surface-copy" style={{ padding: 20 }}>No preview content available.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* RunWorkspaceFilesPanel – file tree + popup preview      */
+/* ─────────────────────────────────────────────────────── */
+function RunWorkspaceFilesPanel({ run }) {
+  const files = collectRunWorkspaceFiles(run);
+  const workspace = run?.workspace && typeof run.workspace === 'object' ? run.workspace : null;
+  const userUploads = Array.isArray(workspace?.userUploads) ? workspace.userUploads : [];
+  const [previewPath, setPreviewPath] = useState('');
+  const tree = useMemo(() => buildFileTree(files), [files]);
+
+  const openPreview = useCallback((path) => {
+    const file = files.find((f) => f.path === path);
+    if (file) {
+      const isDir = file.kinds.length > 0 && file.kinds.every((k) => ensureString(k, '').toLowerCase() === 'directory');
+      if (isDir) return; // skip directories
+    }
+    setPreviewPath(path);
+  }, [files]);
+
+  const closePreview = useCallback(() => setPreviewPath(''), []);
+
+  return (
+    <section className="panel-surface run-workspace-files-panel">
+      <div className="section-head">
+        <h2>Workspace Files</h2>
+        <div className="inline-actions">
+          <span className="chip subtle-chip">{files.length} files</span>
+          {userUploads.length > 0 ? <span className="chip subtle-chip">{userUploads.length} uploads</span> : null}
+          {isActiveRunStatus(run?.status) ? <span className="chip tool-chip">Live</span> : null}
+        </div>
+      </div>
+
+      {files.length > 0 ? (
+        <div className="file-tree-root">
+          <FileTreeNode node={tree} depth={0} onSelectFile={openPreview} />
+        </div>
+      ) : (
+        <p className="surface-copy">No workspace files tracked yet for this run.</p>
+      )}
+
+      {previewPath ? <FilePreviewModal run={run} filePath={previewPath} onClose={closePreview} /> : null}
+    </section>
+  );
+}
+
+function WorkflowRunDetailPanel({ run }) {
   const [selectedNodeId, setSelectedNodeId] = useState('');
 
   useEffect(() => {
@@ -2218,208 +3517,83 @@ function WorkflowRunDetailPanel({ run, onCancelRun, onDeleteRun, onRefreshRun, o
 
   const nodeRuns = Array.isArray(run.nodeRuns) ? run.nodeRuns : [];
   const selectedNode = nodeRuns.find((nodeRun) => nodeRun.nodeId === selectedNodeId) || nodeRuns[0] || null;
-  const canCancel = isActiveRunStatus(run.status);
-  const canDelete = !isActiveRunStatus(run.status);
-  const thinkingLog = selectedNode
-    ? [...(selectedNode.logs || [])].reverse().find((log) => log.category === 'thinking') || null
-    : null;
+  const artifactDirectory = ensureString(run?.artifactDirectory, '') || ensureString(run?.outputs?.artifactDirectory, '');
+  const workspaceDirectory = ensureString(run?.workspaceDirectory, '') || ensureString(run?.outputs?.workspaceDirectory, '');
 
   return (
     <div className="page-stack workflow-run-detail">
-      <section className="panel-surface">
-        <div className="detail-header run-detail-header">
-          <div>
-            <div className="chip subtle-chip">workflow run</div>
-            <h2 className="detail-title">{run.workflowName}</h2>
-            <p className="detail-copy">{truncate(run.outputSummary || run.workflowSummary || run.workflowPrompt, 260)}</p>
-            <p className="detail-meta">
-              Run ID {run.id} • Started {formatLongDateTime(run.startedAt || run.createdAt)} • {formatDuration(run.durationMs)}
-              {run.activeNodeId ? ` • Active agent ${run.activeNodeId}` : ''}
-            </p>
-          </div>
-          <div className="detail-actions">
-            <StatusPill status={run.status} />
-            {onOpenTemplate && run.workflowId ? (
-              <button type="button" className="button ghost button-compact" onClick={() => onOpenTemplate(run.workflowId)}>
-                Open Template
-              </button>
-            ) : null}
-            <button type="button" className="button ghost button-compact" onClick={() => onRefreshRun?.(run.id)}>
-              Refresh
-            </button>
-            {canCancel ? (
-              <button type="button" className="button danger button-compact" onClick={() => onCancelRun?.(run.id)}>
-                Cancel
-              </button>
-            ) : null}
-            {canDelete ? (
-              <button type="button" className="button danger button-compact" onClick={() => onDeleteRun?.(run.id)}>
-                Delete
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="kv-grid">
-          <div className="kv-card">
-            <span>Status</span>
-            <strong>{run.status}</strong>
-          </div>
-          <div className="kv-card">
-            <span>Progress</span>
-            <strong>
-              {run.progress?.completedNodes || 0}/{run.progress?.totalNodes || nodeRuns.length}
-            </strong>
-          </div>
-          <div className="kv-card">
-            <span>Logs</span>
-            <strong>{run.logs?.length || 0}</strong>
-          </div>
-          <div className="kv-card">
-            <span>Deliverables</span>
-            <strong>{run.deliverables?.length || 0}</strong>
-          </div>
-        </div>
-
-        {run.error ? (
-          <div className="workflow-warning" role="alert">
-            {run.error}
-          </div>
-        ) : null}
-      </section>
-
-      <div className="run-detail-grid">
-        <section className="panel-surface">
-          <div className="section-head">
-            <h2>Agents</h2>
-            <span className="chip subtle-chip">{nodeRuns.length}</span>
-          </div>
-          <div className="run-agent-list">
-            {nodeRuns.map((nodeRun) => (
-              <button
-                key={`${run.id}-${nodeRun.nodeId}`}
-                type="button"
-                className={`run-agent-row ${selectedNodeId === nodeRun.nodeId ? 'selected' : ''} ${nodeRun.status}`}
-                onClick={() => setSelectedNodeId(nodeRun.nodeId)}
-              >
-                <div>
-                  <p className="run-agent-title">{nodeRun.name || nodeRun.nodeId}</p>
-                  <p className="run-agent-meta">
-                    {nodeRun.nodeId} • {formatDuration(nodeRun.durationMs)}
-                  </p>
-                  {run.lastThinkingByNodeId?.[nodeRun.nodeId] ? (
-                    <p className="run-agent-thinking-preview">{truncate(run.lastThinkingByNodeId[nodeRun.nodeId], 110)}</p>
-                  ) : null}
-                </div>
-                <StatusPill status={nodeRun.status} />
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="panel-surface">
-          <div className="section-head">
-            <h2>{selectedNode ? selectedNode.name || selectedNode.nodeId : 'Agent Detail'}</h2>
-            {selectedNode ? <StatusPill status={selectedNode.status} /> : null}
+      <div className="run-detail-body-grid">
+        <div className="page-stack run-detail-main-stack">
+          {/* ── Agent Sandbox (2-col: agent list + debug) ── */}
+          <div className="run-sandbox-grid">
+            <AgentSwarmPanel run={run} selectedNodeId={selectedNodeId} onSelectNodeId={setSelectedNodeId} />
+            <AgentDebugWorkbench selectedNode={selectedNode} />
           </div>
 
-          {!selectedNode ? (
-            <EmptyState title="No agent selected" body="Select an agent run to inspect inputs, thinking traces, handoffs, and outputs." />
-          ) : (
-            <div className="page-stack">
-              <div className="kv-grid">
-                <div className="kv-card">
-                  <span>Role</span>
-                  <strong>{selectedNode.role || '—'}</strong>
-                </div>
-                <div className="kv-card">
-                  <span>Started</span>
-                  <strong>{formatDateTime(selectedNode.startedAt)}</strong>
-                </div>
-                <div className="kv-card">
-                  <span>Finished</span>
-                  <strong>{formatDateTime(selectedNode.finishedAt)}</strong>
-                </div>
-                <div className="kv-card">
-                  <span>Node Logs</span>
-                  <strong>{selectedNode.logs?.length || 0}</strong>
-                </div>
+          {/* ── Outputs + Deliverables ─────────────────── */}
+          <section className="panel-surface run-outputs-panel">
+            <div className="section-head">
+              <h2>Outputs & Deliverables</h2>
+            </div>
+            {run.error ? (
+              <div className="workflow-warning" role="alert">
+                {run.error}
               </div>
-
-              <section className="panel-surface nested-panel">
-                <div className="section-head">
-                  <h2>Inputs</h2>
+            ) : null}
+            <p className="surface-copy">{ensureString(run?.outputs?.summary, '').trim() || 'No workflow output summary yet.'}</p>
+            {artifactDirectory ? (
+              <p className="hint">Artifacts: <code>{artifactDirectory}</code></p>
+            ) : null}
+            {workspaceDirectory ? (
+              <p className="hint">Workspace: <code>{workspaceDirectory}</code></p>
+            ) : null}
+            <StructuredValueView value={run.outputs || {}} maxDepth={4} maxItems={12} />
+            <details className="run-json-disclosure">
+              <summary>Raw workflow outputs</summary>
+              <pre className="code-block">{formatJsonPreview(run.outputs || {})}</pre>
+            </details>
+            {Array.isArray(run.deliverables) && run.deliverables.length > 0 ? (
+              <div className="deliverable-list">
+                {run.deliverables.map((deliverable) => (
+                  <article key={deliverable.id || deliverable.name} className="deliverable-card">
+                    <div className="deliverable-head">
+                      <strong>{deliverable.name || 'deliverable'}</strong>
+                      <StatusPill status={deliverable.status || 'final'} />
+                    </div>
+                    <p className="surface-copy">
+                      {(deliverable.type || 'artifact')} • {deliverable.mimeType || 'unknown mime'}
+                      {deliverable.producerNodeId ? ` • ${deliverable.producerNodeId}` : ''}
+                    </p>
+                    {deliverable?.metadata?.artifactPath ? (
+                      <p className="hint">Saved at <code>{deliverable.metadata.artifactPath}</code></p>
+                    ) : null}
+                    {deliverable.preview ? <pre className="code-block deliverable-preview">{String(deliverable.preview)}</pre> : null}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="surface-copy">No deliverables yet.</p>
+            )}
+            {run.inputs && typeof run.inputs === 'object' && Object.keys(run.inputs).length > 0 ? (
+              <details className="run-json-disclosure">
+                <summary>Run inputs</summary>
+                <div className="run-parsed-json">
+                  <StructuredValueView value={run.inputs} maxDepth={3} maxItems={10} />
                 </div>
-                <pre className="code-block">{formatJsonPreview(selectedNode.upstreamInputs || [])}</pre>
-              </section>
+              </details>
+            ) : null}
+          </section>
 
-              <section className="panel-surface nested-panel">
-                <div className="section-head">
-                  <h2>Thinking</h2>
-                  <span className="chip subtle-chip">visible trace</span>
-                </div>
-                {thinkingLog ? (
-                  <div className="stack-list">
-                    {selectedNode.logs
-                      .filter((log) => log.category === 'thinking')
-                      .map((log) => (
-                        <div key={log.id} className="workflow-warning neutral-log-note">
-                          {log.message}
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="surface-copy">No visible reasoning trace recorded yet.</p>
-                )}
-              </section>
+          {/* ── Logs (bottom, chronological — latest at end) ── */}
+          <RunLogFeed logs={run.logs || []} selectedNodeId="" />
+        </div>
 
-              <section className="panel-surface nested-panel">
-                <div className="section-head">
-                  <h2>Output</h2>
-                </div>
-                <pre className="code-block">{formatJsonPreview(selectedNode.output || {})}</pre>
-              </section>
-            </div>
-          )}
-        </section>
-      </div>
-
-      <div className="run-detail-grid lower">
-        <section className="panel-surface">
-          <div className="section-head">
-            <h2>Run Inputs</h2>
+        <aside className="run-detail-right-rail" aria-label="Workspace files panel">
+          <div className="run-detail-right-rail-inner">
+            <RunWorkspaceFilesPanel run={run} />
           </div>
-          <pre className="code-block">{formatJsonPreview(run.inputs || {})}</pre>
-        </section>
-
-        <section className="panel-surface">
-          <div className="section-head">
-            <h2>Outputs & Deliverables</h2>
-          </div>
-          <pre className="code-block">{formatJsonPreview(run.outputs || {})}</pre>
-          {Array.isArray(run.deliverables) && run.deliverables.length > 0 ? (
-            <div className="deliverable-list">
-              {run.deliverables.map((deliverable) => (
-                <article key={deliverable.id || deliverable.name} className="deliverable-card">
-                  <div className="deliverable-head">
-                    <strong>{deliverable.name || 'deliverable'}</strong>
-                    <StatusPill status={deliverable.status || 'final'} />
-                  </div>
-                  <p className="surface-copy">
-                    {(deliverable.type || 'artifact')} • {deliverable.mimeType || 'unknown mime'}
-                    {deliverable.producerNodeId ? ` • ${deliverable.producerNodeId}` : ''}
-                  </p>
-                  {deliverable.preview ? <pre className="code-block deliverable-preview">{String(deliverable.preview)}</pre> : null}
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="surface-copy">No deliverables were produced yet.</p>
-          )}
-        </section>
+        </aside>
       </div>
-
-      <RunLogFeed logs={run.logs || []} selectedNodeId="" />
     </div>
   );
 }
@@ -2438,10 +3612,10 @@ function WorkflowRunsMonitorView({
   onOpenTemplate,
 }) {
   return (
-    <div className="workflows-layout workflow-runtime-layout">
+    <div className="workflows-layout workflow-runtime-layout compact runs-monitor-layout">
       <section className="panel-surface workflow-list-panel" aria-label="Workflow runs">
         <div className="section-head">
-          <h2>Workflow Runs</h2>
+          <h2>Runs</h2>
           <div className="inline-actions">
             {runsLoading ? <span className="chip subtle-chip">refreshing</span> : null}
             <span className="chip subtle-chip">{runs.length}</span>
@@ -2451,7 +3625,7 @@ function WorkflowRunsMonitorView({
           </div>
         </div>
         <p className="surface-copy">
-          Live backend execution status with agent-level logs for inputs, handoffs, thinking, and outputs.
+          Backend execution history with live status, logs, and outputs.
         </p>
         {runsError ? (
           <div className="workflow-warning" role="alert">
@@ -2460,7 +3634,7 @@ function WorkflowRunsMonitorView({
         ) : null}
 
         {runs.length === 0 ? (
-          <EmptyState title="No workflow runs yet" body="Start a run from a workflow template to monitor live execution here." />
+          <EmptyState title="No runs yet" body="Start a run from the Workflow Creator to monitor execution here." />
         ) : (
           <div className="workflow-list run-monitor-list">
             {runs.map((run) => (
@@ -2833,14 +4007,14 @@ function WorkflowRunsLiveView({
 
         {workflowsList.length === 0 ? (
           <EmptyState
-            title="No workflow templates"
-            body="Create a workflow template first, then use Live Run to collect inputs, upload documents, and launch a run."
+            title="No workflows"
+            body="Create a workflow first, then use Live Run to collect inputs, upload documents, and launch a run."
           />
         ) : (
           <div className="page-stack">
             <div className="live-run-toolbar">
               <label className="field-group">
-                <span>Workflow Template</span>
+                <span>Workflow</span>
                 <select
                   className="select"
                   value={workflowId}
@@ -2857,7 +4031,7 @@ function WorkflowRunsLiveView({
               <div className="live-run-toolbar-actions">
                 {workflow?.id && onOpenTemplate ? (
                   <button type="button" className="button ghost button-compact" onClick={() => onOpenTemplate(workflow.id)}>
-                    Open Template
+                    Open Workflow
                   </button>
                 ) : null}
                 <button
@@ -3219,7 +4393,7 @@ function WorkflowRunsLiveView({
         </div>
 
         {!workflow ? (
-          <EmptyState title="Select a workflow" body="Choose a template on the left to prepare a live run and preview deliverables here." />
+          <EmptyState title="Select a workflow" body="Choose a workflow on the left to prepare a live run and preview deliverables here." />
         ) : !viewerRun ? (
           <div className="page-stack">
             <p className="surface-copy">
@@ -3318,107 +4492,40 @@ function WorkflowRunsLiveView({
 }
 
 function WorkflowRunsWorkspaceView({
-  activeTab,
-  onSelectTab,
-  workflows,
-  preferredWorkflowId,
   runs,
   selectedRun,
   selectedRunId,
   runsLoading,
   runsError,
-  startLoading,
-  startError,
-  onStartRun,
   onSelectRun,
   onRefreshRunList,
   onRefreshRun,
   onCancelRun,
   onDeleteRun,
   onOpenTemplate,
-  onSelectWorkflowForLive,
-  onClearStartError,
 }) {
   return (
     <div className="page-stack workflow-runs-workspace">
-      <section className="panel-surface workflow-runs-tab-shell">
-        <div className="detail-tabs workflow-runs-tabs" role="tablist" aria-label="Workflow runs views">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'live'}
-            className={`tab-button ${activeTab === 'live' ? 'active' : ''}`}
-            onClick={() => onSelectTab?.('live')}
-          >
-            Live
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'runs'}
-            className={`tab-button ${activeTab === 'runs' ? 'active' : ''}`}
-            onClick={() => onSelectTab?.('runs')}
-          >
-            Runs
-          </button>
-        </div>
-        <p className="surface-copy workflow-runs-tab-copy">
-          Live gathers user inputs and documents before launch. Runs shows the full execution monitor, logs, and agent traces.
-        </p>
-      </section>
-
-      {activeTab === 'live' ? (
-        <WorkflowRunsLiveView
-          workflows={workflows}
-          preferredWorkflowId={preferredWorkflowId}
-          runs={runs}
-          selectedRun={selectedRun}
-          startLoading={startLoading}
-          startError={startError}
-          onStartRun={onStartRun}
-          onSelectRun={onSelectRun}
-          onOpenTemplate={onOpenTemplate}
-          onSelectWorkflowForLive={onSelectWorkflowForLive}
-          onOpenRunsTab={() => onSelectTab?.('runs')}
-          onClearStartError={onClearStartError}
-        />
-      ) : (
-        <WorkflowRunsMonitorView
-          runs={runs}
-          selectedRun={selectedRun}
-          selectedRunId={selectedRunId}
-          runsLoading={runsLoading}
-          runsError={runsError}
-          onSelectRun={onSelectRun}
-          onRefreshRunList={onRefreshRunList}
-          onRefreshRun={onRefreshRun}
-          onCancelRun={onCancelRun}
-          onDeleteRun={onDeleteRun}
-          onOpenTemplate={onOpenTemplate}
-        />
-      )}
+      <WorkflowRunsMonitorView
+        runs={runs}
+        selectedRun={selectedRun}
+        selectedRunId={selectedRunId}
+        runsLoading={runsLoading}
+        runsError={runsError}
+        onSelectRun={onSelectRun}
+        onRefreshRunList={onRefreshRunList}
+        onRefreshRun={onRefreshRun}
+        onCancelRun={onCancelRun}
+        onDeleteRun={onDeleteRun}
+        onOpenTemplate={onOpenTemplate}
+      />
     </div>
   );
 }
 
-function DashboardView({ homeMessage, workflows, runs, onOpenNewWorkflow, onSelectWorkflow, onRunWorkflow }) {
-  const totalWorkflows = workflows.length;
-  const totalRuns = runs.length;
-  const lastRun = runs[0] || null;
-  const successRuns = runs.filter((run) => run.status === 'success').length;
-  const successRate = totalRuns > 0 ? `${Math.round((successRuns / totalRuns) * 100)}%` : '—';
-
+function DashboardView({ workflows, runs, onOpenNewWorkflow, onSelectWorkflow, onRunWorkflow }) {
   return (
     <div className="page-stack">
-      {homeMessage ? <div className="banner-note">{homeMessage}</div> : null}
-
-      <section className="stats-grid" aria-label="Workflow stats">
-        <StatCard label="Workflows" value={String(totalWorkflows)} meta="Saved locally in browser" />
-        <StatCard label="Runs" value={String(totalRuns)} meta="Backend workflow run history" />
-        <StatCard label="Success Rate" value={successRate} meta="Across all recorded runs" />
-        <StatCard label="Last Run" value={lastRun ? formatDateTime(lastRun.startedAt) : '—'} meta="Most recent execution" />
-      </section>
-
       <section className="panel-surface">
         <div className="section-head">
           <h2>Quick Start</h2>
@@ -3521,15 +4628,15 @@ function WorkflowListPanel({
   onDeleteWorkflow,
 }) {
   return (
-    <section className="panel-surface workflow-list-panel" aria-label="Saved workflow templates">
+    <section className="panel-surface workflow-list-panel" aria-label="Saved workflows">
       <div className="section-head">
-        <h2>Workflow Templates</h2>
+        <h2>Workflows</h2>
         <span className="chip subtle-chip">{workflows.length}</span>
       </div>
 
       {workflows.length === 0 ? (
         <p className="surface-copy workflow-list-empty-hint">
-          No workflow templates saved yet. Create one from the card below.
+          No workflows saved yet. Create one from the card below.
         </p>
       ) : null}
 
@@ -3558,7 +4665,7 @@ function WorkflowListPanel({
               +
             </span>
             <div className="workflow-row-main">
-              <p className="workflow-row-title">New Workflow Template</p>
+              <p className="workflow-row-title">New Workflow</p>
               <p className="workflow-row-copy">
                 Generate a graph from a prompt, then tune agents and connections on the canvas.
               </p>
@@ -4066,7 +5173,7 @@ function WorkflowRunsTab({ workflow, runs, onRunWorkflow, onSelectWorkflow, onSe
           <span className="chip subtle-chip">backend runtime</span>
         </div>
         <p className="surface-copy">
-          Start a backend workflow run with inputs and requested deliverables. Agent status and logs stream into the Workflows & Runs tab.
+          Start a backend workflow run with inputs and requested deliverables. Agent status and logs stream into Runs.
         </p>
         <div className="inline-actions">
           <button type="button" className="button" onClick={() => onRunWorkflow(workflow.id)}>
@@ -4074,7 +5181,7 @@ function WorkflowRunsTab({ workflow, runs, onRunWorkflow, onSelectWorkflow, onSe
           </button>
           {typeof onOpenWorkflowsMonitor === 'function' ? (
             <button type="button" className="button ghost button-compact" onClick={onOpenWorkflowsMonitor}>
-              Open Live Workflows
+              Open Runs
             </button>
           ) : null}
         </div>
@@ -4088,6 +5195,368 @@ function WorkflowRunsTab({ workflow, runs, onRunWorkflow, onSelectWorkflow, onSe
         <RunsList runs={runs} onSelectWorkflow={onSelectWorkflow} onSelectRun={onSelectRun} compact />
       </section>
     </div>
+  );
+}
+
+function WorkflowStartPanel({
+  workflow,
+  open,
+  workflowRuns = [],
+  startLoading,
+  startError,
+  onStartRun,
+  onClose,
+  onOpenRunsMonitor,
+  onClearStartError,
+}) {
+  const [draftInputs, setDraftInputs] = useState({});
+  const [localError, setLocalError] = useState('');
+  const [uploadingCount, setUploadingCount] = useState(0);
+
+  const inputModules = normalizeInputModuleSpecs(
+    workflow?.inputModules || workflow?.inputs || [],
+    workflow?.prompt || workflow?.summary || ''
+  );
+  const missingRequiredModules = listMissingRequiredInputs(inputModules, draftInputs);
+  const readinessComplete = missingRequiredModules.length === 0 && uploadingCount === 0;
+
+  useEffect(() => {
+    if (!open || !workflow) return;
+    setDraftInputs(createLiveRunInputDrafts(inputModules));
+    setLocalError('');
+    setUploadingCount(0);
+    onClearStartError?.();
+  }, [open, workflow?.id]);
+
+  if (!open || !workflow) {
+    return null;
+  }
+
+  const updateDraftInput = (name, value) => {
+    setDraftInputs((prev) => ({ ...prev, [name]: value }));
+    setLocalError('');
+    onClearStartError?.();
+  };
+
+  const addUploadedFiles = async (files, moduleName) => {
+    const fileList = Array.from(files || []);
+    if (fileList.length === 0 || !moduleName) return;
+
+    setUploadingCount((prev) => prev + fileList.length);
+    setLocalError('');
+    onClearStartError?.();
+
+    const results = await Promise.allSettled(fileList.map((file) => serializeUploadedFileForRun(file)));
+    const attachments = [];
+    const errors = [];
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        attachments.push(result.value);
+      } else {
+        errors.push(result.reason instanceof Error ? result.reason.message : 'Failed to read file');
+      }
+    }
+
+    setUploadingCount((prev) => Math.max(0, prev - fileList.length));
+
+    if (attachments.length > 0) {
+      setDraftInputs((prev) => ({
+        ...prev,
+        [moduleName]: [...(Array.isArray(prev[moduleName]) ? prev[moduleName] : []), ...attachments],
+      }));
+    }
+    if (errors.length > 0) {
+      setLocalError(errors.join(' '));
+    }
+  };
+
+  const removeModuleAttachment = (moduleName, attachmentId) => {
+    setDraftInputs((prev) => ({
+      ...prev,
+      [moduleName]: (Array.isArray(prev[moduleName]) ? prev[moduleName] : []).filter((item) => item.id !== attachmentId),
+    }));
+    setLocalError('');
+    onClearStartError?.();
+  };
+
+  const buildRunInputsPayload = () => {
+    const payload = {};
+    const parseErrors = [];
+
+    for (const module of inputModules) {
+      const rawValue = draftInputs[module.name];
+      const type = ensureString(module.type, 'user_input');
+
+      if (!isWorkflowInputValueProvided(module, rawValue)) {
+        continue;
+      }
+
+      if (type === 'file_upload') {
+        payload[module.name] = (Array.isArray(rawValue) ? rawValue : []).map((file) => ({
+          id: file.id,
+          name: file.name,
+          mimeType: file.mimeType,
+          sizeBytes: file.sizeBytes,
+          uploadedAt: file.uploadedAt,
+          kind: file.kind,
+          content: file.content,
+          truncated: Boolean(file.truncated),
+        }));
+        continue;
+      }
+
+      if (type === 'boolean') {
+        payload[module.name] = Boolean(rawValue);
+        continue;
+      }
+
+      if (type === 'number') {
+        const numeric = typeof rawValue === 'number' ? rawValue : Number(String(rawValue).trim());
+        if (!Number.isFinite(numeric)) {
+          parseErrors.push(`${module.label || module.name}: enter a valid number.`);
+          continue;
+        }
+        payload[module.name] = numeric;
+        continue;
+      }
+
+      if (type === 'json') {
+        if (typeof rawValue !== 'string') {
+          payload[module.name] = rawValue;
+          continue;
+        }
+        try {
+          payload[module.name] = JSON.parse(rawValue);
+        } catch {
+          parseErrors.push(`${module.label || module.name}: invalid JSON.`);
+        }
+        continue;
+      }
+
+      payload[module.name] = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+    }
+
+    return { payload, parseErrors };
+  };
+
+  const handleStartRun = async () => {
+    if (typeof onStartRun !== 'function' || startLoading) return;
+    if (uploadingCount > 0) {
+      setLocalError('Wait for file uploads to finish before starting the run.');
+      return;
+    }
+    if (missingRequiredModules.length > 0) {
+      setLocalError(`Missing required inputs: ${missingRequiredModules.map((item) => item.label || item.name).join(', ')}`);
+      return;
+    }
+
+    const { payload, parseErrors } = buildRunInputsPayload();
+    if (parseErrors.length > 0) {
+      setLocalError(parseErrors.join(' '));
+      return;
+    }
+
+    const startedRun = await onStartRun({
+      workflowId: workflow.id,
+      source: 'creator_panel',
+      inputs: payload,
+    });
+
+    if (startedRun) {
+      setLocalError('');
+      onClose?.();
+    }
+  };
+
+  const latestRun = Array.isArray(workflowRuns) ? workflowRuns[0] || null : null;
+
+  return (
+    <section className="panel-surface workflow-start-panel" aria-label="Workflow run inputs">
+      <div className="workflow-start-panel-head">
+        <div className="workflow-start-panel-title">
+          <div className="chip subtle-chip">run inputs</div>
+          <h3>Start {workflow.name}</h3>
+          <p className="surface-copy">
+            Provide required inputs, then launch the backend run. Monitoring happens in Runs.
+          </p>
+        </div>
+        <div className="workflow-start-panel-actions">
+          {latestRun ? <StatusPill status={latestRun.status || 'queued'} /> : null}
+          {typeof onOpenRunsMonitor === 'function' ? (
+            <button type="button" className="button ghost button-compact" onClick={onOpenRunsMonitor}>
+              Open Runs
+            </button>
+          ) : null}
+          <button type="button" className="button ghost button-compact" onClick={onClose} disabled={startLoading}>
+            Close
+          </button>
+        </div>
+      </div>
+
+      <div className="workflow-start-panel-meta">
+        <span className="chip subtle-chip">
+          {inputModules.length} inputs • {workflowRuns.length} runs
+        </span>
+        {uploadingCount > 0 ? <span className="chip subtle-chip">uploading {uploadingCount}</span> : null}
+        <span className={`chip subtle-chip ${readinessComplete ? 'chip-positive' : ''}`}>
+          {readinessComplete ? 'ready' : `${missingRequiredModules.length} missing`}
+        </span>
+      </div>
+
+      <div className="workflow-start-input-grid">
+        {inputModules.map((module, index) => {
+          const key = module.id || `${module.name}-${index}`;
+          const value = draftInputs[module.name];
+          const safeType = ensureString(module.type, 'user_input');
+          const isWide = ['long_text', 'user_input', 'json', 'file_upload'].includes(safeType);
+
+          return (
+            <article key={key} className={`workflow-start-input-card ${isWide ? 'wide' : ''}`}>
+              <div className="workflow-start-input-card-head">
+                <div>
+                  <p className="contract-label">{module.required !== false ? 'Required' : 'Optional'}</p>
+                  <h4>{module.label || module.name}</h4>
+                  <p className="workflow-start-input-key">{module.name}</p>
+                </div>
+                <div className="inline-actions">
+                  <span className="chip subtle-chip">{safeType}</span>
+                  <span className={`chip subtle-chip ${isWorkflowInputValueProvided(module, value) ? 'chip-positive' : ''}`}>
+                    {isWorkflowInputValueProvided(module, value) ? 'set' : module.required !== false ? 'needed' : 'skip'}
+                  </span>
+                </div>
+              </div>
+
+              {module.description ? <p className="surface-copy workflow-start-input-copy">{module.description}</p> : null}
+
+              {safeType === 'boolean' ? (
+                <label className="checkbox-inline">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(value)}
+                    onChange={(event) => updateDraftInput(module.name, event.target.checked)}
+                    disabled={startLoading}
+                  />
+                  <span>{module.label || module.name}</span>
+                </label>
+              ) : null}
+
+              {safeType === 'number' ? (
+                <label className="field-group">
+                  <span>Value</span>
+                  <input
+                    type="number"
+                    className="input"
+                    value={typeof value === 'string' || typeof value === 'number' ? value : ''}
+                    onChange={(event) => updateDraftInput(module.name, event.target.value)}
+                    disabled={startLoading}
+                    placeholder="42"
+                  />
+                </label>
+              ) : null}
+
+              {safeType === 'json' ? (
+                <label className="field-group">
+                  <span>JSON</span>
+                  <textarea
+                    className="textarea textarea-compact"
+                    rows={4}
+                    value={typeof value === 'string' ? value : ''}
+                    onChange={(event) => updateDraftInput(module.name, event.target.value)}
+                    disabled={startLoading}
+                    placeholder='{"key":"value"}'
+                  />
+                </label>
+              ) : null}
+
+              {safeType === 'file_upload' ? (
+                <div className="workflow-start-file-stack">
+                  <div className="workflow-start-file-actions">
+                    <label className="button ghost button-compact live-run-upload-button">
+                      Attach Files
+                      <input
+                        type="file"
+                        multiple
+                        onChange={(event) => {
+                          void addUploadedFiles(event.target.files, module.name);
+                          event.target.value = '';
+                        }}
+                        disabled={startLoading}
+                      />
+                    </label>
+                    <span className="hint">
+                      {Array.isArray(value) && value.length > 0 ? `${value.length} attached` : 'No files attached'}
+                    </span>
+                  </div>
+                  {Array.isArray(value) && value.length > 0 ? (
+                    <div className="workflow-start-file-list">
+                      {value.map((file) => (
+                        <div key={file.id} className="workflow-start-file-row">
+                          <div>
+                            <strong>{file.name}</strong>
+                            <span>
+                              {file.mimeType} • {formatBytes(file.sizeBytes)}
+                              {file.truncated ? ' • truncated' : ''}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="button danger button-compact"
+                            onClick={() => removeModuleAttachment(module.name, file.id)}
+                            disabled={startLoading}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {!['boolean', 'number', 'json', 'file_upload'].includes(safeType) ? (
+                <label className="field-group">
+                  <span>{safeType === 'long_text' || safeType === 'user_input' ? 'Text' : 'Value'}</span>
+                  {safeType === 'long_text' || safeType === 'user_input' ? (
+                    <textarea
+                      className="textarea textarea-compact"
+                      rows={4}
+                      value={typeof value === 'string' ? value : ''}
+                      onChange={(event) => updateDraftInput(module.name, event.target.value)}
+                      disabled={startLoading}
+                      placeholder="Provide run input..."
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      className="input"
+                      value={typeof value === 'string' ? value : ''}
+                      onChange={(event) => updateDraftInput(module.name, event.target.value)}
+                      disabled={startLoading}
+                      placeholder={safeType === 'url' ? 'https://example.com' : 'Enter value'}
+                    />
+                  )}
+                </label>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="workflow-start-panel-footer">
+        <p className={startError || localError ? 'error' : 'hint'} role={startError || localError ? 'alert' : 'status'}>
+          {startError || localError || 'Fill required inputs and start the workflow run.'}
+        </p>
+        <div className="inline-actions">
+          <button type="button" className="button ghost button-compact" onClick={onClose} disabled={startLoading}>
+            Cancel
+          </button>
+          <button type="button" className="button" onClick={handleStartRun} disabled={startLoading || !readinessComplete}>
+            {startLoading ? 'Starting…' : 'Start Run'}
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -4115,6 +5584,12 @@ function WorkflowDetail({
   onAddEdge,
   onUpdateEdge,
   onDeleteEdge,
+  startPanelOpen,
+  startLoading,
+  startError,
+  onStartRun,
+  onCloseStartPanel,
+  onClearStartError,
 }) {
   if (!workflow) {
     return (
@@ -4128,7 +5603,10 @@ function WorkflowDetail({
   }
 
   return (
-    <section className="panel-surface workflow-detail-panel graph-mode" aria-labelledby="workflow-detail-title">
+    <section
+      className={`panel-surface workflow-detail-panel graph-mode ${startPanelOpen ? 'has-start-panel' : ''}`}
+      aria-labelledby="workflow-detail-title"
+    >
       <div className="detail-header">
         <div>
           <div className="chip subtle-chip">workflow</div>
@@ -4149,6 +5627,18 @@ function WorkflowDetail({
           </button>
         </div>
       </div>
+
+      <WorkflowStartPanel
+        workflow={workflow}
+        open={Boolean(startPanelOpen)}
+        workflowRuns={runs}
+        startLoading={startLoading}
+        startError={startError}
+        onStartRun={onStartRun}
+        onClose={onCloseStartPanel}
+        onOpenRunsMonitor={onOpenWorkflowsMonitor}
+        onClearStartError={onClearStartError}
+      />
 
       <div className="detail-tab-panel">
         <GraphEditor
@@ -4200,6 +5690,12 @@ function WorkflowsView({
   onAddEdge,
   onUpdateEdge,
   onDeleteEdge,
+  startPanelWorkflowId,
+  startLoading,
+  startError,
+  onStartRun,
+  onCloseStartPanel,
+  onClearStartError,
 }) {
   return (
     <div className="workflows-layout">
@@ -4235,6 +5731,12 @@ function WorkflowsView({
         onAddEdge={onAddEdge}
         onUpdateEdge={onUpdateEdge}
         onDeleteEdge={onDeleteEdge}
+        startPanelOpen={Boolean(selectedWorkflow && startPanelWorkflowId === selectedWorkflow.id)}
+        startLoading={startLoading}
+        startError={startError}
+        onStartRun={onStartRun}
+        onCloseStartPanel={onCloseStartPanel}
+        onClearStartError={onClearStartError}
       />
     </div>
   );
@@ -4264,7 +5766,7 @@ function SettingsView({ onResetDemoData }) {
           <span className="chip subtle-chip">mvp</span>
         </div>
         <p className="surface-copy">
-          Workflow templates persist in local storage. Planner generation and workflow execution runs (status/logs/deliverables) are served by the backend API.
+          Workflows persist in local storage. Planner generation and workflow execution runs (status/logs/deliverables) are served by the backend API.
         </p>
         <div className="kv-grid">
           <div className="kv-card">
@@ -4291,7 +5793,7 @@ function SettingsView({ onResetDemoData }) {
           <h2>Reset Demo Data</h2>
         </div>
         <p className="surface-copy">
-          Clears locally saved workflow templates from this browser. Backend workflow run history is not deleted.
+          Clears locally saved workflows from this browser. Backend workflow run history is not deleted.
         </p>
         <div className="inline-actions">
           <button type="button" className="button danger" onClick={onResetDemoData}>
@@ -4539,7 +6041,7 @@ function NewWorkflowModal({ open, onClose, onCreateWorkflow }) {
                 <div className="stack-list compact-list">
                   <p className="surface-copy">The planner generates the DAG (agents + handoffs).</p>
                   <p className="surface-copy">Then it infers workflow-level inputs and outputs (deliverables).</p>
-                  <p className="surface-copy">You review/edit the contract before saving the template.</p>
+                  <p className="surface-copy">You review/edit the contract before saving the workflow.</p>
                 </div>
               </div>
 
@@ -4804,7 +6306,7 @@ function NewWorkflowModal({ open, onClose, onCreateWorkflow }) {
                   </div>
                 </div>
                 <p className="surface-copy">
-                  Review the inferred contract, then save this template. You can continue editing the graph and contract later.
+                  Review the inferred contract, then save this workflow. You can continue editing the graph and contract later.
                 </p>
                 <WorkflowDag plan={draftPlan} />
               </section>
@@ -4822,7 +6324,6 @@ function HomeCard({ message, onLogout, loading }) {
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [selectedEdgeIndex, setSelectedEdgeIndex] = useState(null);
   const [detailTab, setDetailTab] = useState('dag');
-  const [workflowRunsTab, setWorkflowRunsTab] = useState('live');
   const [isNewWorkflowOpen, setIsNewWorkflowOpen] = useState(false);
   const [runWorkflowTargetId, setRunWorkflowTargetId] = useState(null);
   const [runModalLoading, setRunModalLoading] = useState(false);
@@ -4974,12 +6475,24 @@ function HomeCard({ message, onLogout, loading }) {
 
     let disposed = false;
     let fetching = false;
+    let sseSource = null;
+    let sseMaxSeq = -1;
+
+    // Initial fetch to get full run state
     const tick = async (silent) => {
       if (fetching) return;
       fetching = true;
       try {
         const detail = await refreshWorkflowRunDetail(selectedWorkflowRunId, { silent });
         if (disposed || !detail) return;
+        // Update SSE cursor to the latest seq from full fetch
+        if (Array.isArray(detail.logs)) {
+          for (const log of detail.logs) {
+            if (Number.isFinite(log.seq) && log.seq > sseMaxSeq) {
+              sseMaxSeq = log.seq;
+            }
+          }
+        }
       } finally {
         fetching = false;
       }
@@ -4987,7 +6500,148 @@ function HomeCard({ message, onLogout, loading }) {
 
     const currentStatus = selectedWorkflowRun?.status || '';
     tick(false);
-    const intervalMs = isActiveRunStatus(currentStatus) || activeSection === 'workflowRuns' ? 900 : 3000;
+
+    // For active runs, use SSE for real-time updates instead of aggressive polling
+    if (isActiveRunStatus(currentStatus)) {
+      const connectSSE = () => {
+        if (disposed) return;
+        const url = `/api/workflow-runs/${encodeURIComponent(selectedWorkflowRunId)}/stream?last_seq=${sseMaxSeq}`;
+        sseSource = new EventSource(url, { withCredentials: true });
+
+        sseSource.addEventListener('log', (event) => {
+          if (disposed) return;
+          try {
+            const log = JSON.parse(event.data);
+            if (Number.isFinite(log.seq) && log.seq > sseMaxSeq) {
+              sseMaxSeq = log.seq;
+            }
+            // Merge this log into the run detail
+            setSelectedWorkflowRunDetail((prev) => {
+              if (!prev || prev.id !== selectedWorkflowRunId) return prev;
+              const existingIds = new Set((prev.logs || []).map((l) => l.id));
+              if (existingIds.has(log.id)) return prev;
+              const newLogs = [...(prev.logs || []), {
+                id: ensureString(log.id, generateId('log')),
+                seq: Number.isFinite(log.seq) ? log.seq : 0,
+                timestamp: ensureString(log.timestamp, ''),
+                category: ensureString(log.category, 'lifecycle'),
+                title: ensureString(log.title, ''),
+                message: ensureString(log.message, ''),
+                nodeId: ensureString(log.nodeId, '') || null,
+                payload: log.payload ?? null,
+              }];
+              // Update lastThinkingByNodeId
+              const lastThinkingByNodeId = { ...prev.lastThinkingByNodeId };
+              if (log.category === 'thinking' && log.nodeId) {
+                lastThinkingByNodeId[log.nodeId] = log.message;
+              }
+              // Also update the nodeRun's logs if applicable
+              let nextNodeRuns = prev.nodeRuns;
+              if (log.nodeId) {
+                nextNodeRuns = prev.nodeRuns.map((nr) => {
+                  if (nr.nodeId !== log.nodeId) return nr;
+                  const nrLogIds = new Set((nr.logs || []).map((l) => l.id));
+                  if (nrLogIds.has(log.id)) return nr;
+                  return { ...nr, logs: [...(nr.logs || []), {
+                    id: ensureString(log.id, generateId('log')),
+                    seq: Number.isFinite(log.seq) ? log.seq : 0,
+                    timestamp: ensureString(log.timestamp, ''),
+                    category: ensureString(log.category, 'lifecycle'),
+                    title: ensureString(log.title, ''),
+                    message: ensureString(log.message, ''),
+                    nodeId: ensureString(log.nodeId, '') || null,
+                    payload: log.payload ?? null,
+                  }]};
+                });
+              }
+              return { ...prev, logs: newLogs, nodeRuns: nextNodeRuns, lastThinkingByNodeId };
+            });
+          } catch (_) { /* ignore parse errors */ }
+        });
+
+        sseSource.addEventListener('state', (event) => {
+          if (disposed) return;
+          try {
+            const state = JSON.parse(event.data);
+            setSelectedWorkflowRunDetail((prev) => {
+              if (!prev || prev.id !== selectedWorkflowRunId) return prev;
+              const nodeRunsUpdated = prev.nodeRuns.map((nr) => {
+                const match = (state.nodeRuns || []).find((s) => s.nodeId === nr.nodeId);
+                if (!match) return nr;
+                return {
+                  ...nr,
+                  status: match.status || nr.status,
+                  startedAt: match.startedAt || nr.startedAt,
+                  finishedAt: match.finishedAt || nr.finishedAt,
+                  durationMs: Number.isFinite(match.durationMs) ? match.durationMs : nr.durationMs,
+                };
+              });
+              return {
+                ...prev,
+                status: state.status || prev.status,
+                activeNodeId: state.activeNodeId || prev.activeNodeId,
+                nodeRuns: nodeRunsUpdated,
+                progress: {
+                  ...prev.progress,
+                  completedNodes: nodeRunsUpdated.filter((nr) => nr.status === 'success').length,
+                },
+              };
+            });
+          } catch (_) { /* ignore */ }
+        });
+
+        sseSource.addEventListener('workspace:change', (event) => {
+          if (disposed) return;
+          // Workspace changes are already captured in log events; the state update
+          // from the 'log' handler will trigger re-renders of workspace file panels.
+          // This event is available for future use (e.g., toast notifications).
+        });
+
+        sseSource.addEventListener('run:complete', (event) => {
+          if (disposed) return;
+          // Do a final full fetch to get complete run state including outputs/deliverables
+          tick(true);
+          if (sseSource) {
+            sseSource.close();
+            sseSource = null;
+          }
+        });
+
+        sseSource.onerror = () => {
+          if (disposed) return;
+          // SSE failed — close and fall back to polling
+          if (sseSource) {
+            sseSource.close();
+            sseSource = null;
+          }
+          // Retry SSE connection after a brief delay
+          setTimeout(() => {
+            if (!disposed) connectSSE();
+          }, 2000);
+        };
+      };
+
+      // Start SSE after a brief delay to let initial fetch complete
+      const sseTimer = setTimeout(connectSSE, 600);
+
+      // Slow polling as fallback (every 5s) in case SSE misses something
+      const fallbackTimer = window.setInterval(() => {
+        tick(true);
+      }, 5000);
+
+      return () => {
+        disposed = true;
+        window.clearTimeout(sseTimer);
+        window.clearInterval(fallbackTimer);
+        if (sseSource) {
+          sseSource.close();
+          sseSource = null;
+        }
+      };
+    }
+
+    // For non-active runs, use slower polling
+    const intervalMs = activeSection === 'workflowRuns' ? 3000 : 5000;
     const timer = window.setInterval(() => {
       tick(true);
     }, intervalMs);
@@ -5060,6 +6714,8 @@ function HomeCard({ message, onLogout, loading }) {
     setSelectedEdgeIndex(null);
     setDetailTab('dag');
     setDagEditorError('');
+    setRunWorkflowTargetId(null);
+    setRunModalError('');
   };
 
   const handleDeleteWorkflow = (workflowId) => {
@@ -5068,7 +6724,7 @@ function HomeCard({ message, onLogout, loading }) {
 
     const confirmed =
       typeof window === 'undefined' ||
-      window.confirm(`Delete workflow template "${workflow.name}"? This removes it from local templates only.`);
+      window.confirm(`Delete workflow "${workflow.name}"? This removes it from local workflows only.`);
     if (!confirmed) return;
 
     setWorkflows((prev) => prev.filter((item) => item.id !== workflowId));
@@ -5082,12 +6738,10 @@ function HomeCard({ message, onLogout, loading }) {
   const handleSelectWorkflowRun = (runId) => {
     setSelectedWorkflowRunId(runId);
     setActiveSection('workflowRuns');
-    setWorkflowRunsTab('runs');
   };
 
   const handleOpenWorkflowsMonitor = () => {
     setActiveSection('workflowRuns');
-    setWorkflowRunsTab('runs');
     if (!selectedWorkflowRunId && runs[0]?.id) {
       setSelectedWorkflowRunId(runs[0].id);
     }
@@ -5424,9 +7078,10 @@ function HomeCard({ message, onLogout, loading }) {
     }
     setRunWorkflowTargetId(workflowId);
     setRunModalError('');
-    setActiveSection('workflowRuns');
-    setWorkflowRunsTab('live');
+    setActiveSection('workflows');
     setSelectedWorkflowId(workflowId);
+    setSelectedNodeId(null);
+    setSelectedEdgeIndex(null);
     if (selectedWorkflowId === workflowId) {
       setDetailTab('dag');
     }
@@ -5439,7 +7094,7 @@ function HomeCard({ message, onLogout, loading }) {
 
     const workflow = workflows.find((candidate) => candidate.id === targetWorkflowId);
     if (!workflow) {
-      setRunModalError('Workflow template not found.');
+      setRunModalError('Workflow not found.');
       return null;
     }
 
@@ -5491,8 +7146,7 @@ function HomeCard({ message, onLogout, loading }) {
       setSelectedWorkflowRunId(startedRun.id);
       setSelectedWorkflowRunDetail(startedRun);
       setActiveSection('workflowRuns');
-      setWorkflowRunsTab(runConfig?.source === 'runs' ? 'runs' : 'live');
-      setRunWorkflowTargetId(workflow.id);
+      setRunWorkflowTargetId(null);
       setSelectedWorkflowId(workflow.id);
       setUiNotice(`Started ${workflow.name}`);
 
@@ -5569,14 +7223,13 @@ function HomeCard({ message, onLogout, loading }) {
     setSelectedWorkflowId(null);
     setSelectedNodeId(null);
     setSelectedEdgeIndex(null);
-    setWorkflowRunsTab('live');
     setRunWorkflowTargetId(null);
     setRunModalError('');
     setSelectedWorkflowRunId(null);
     setSelectedWorkflowRunDetail(null);
     setDetailTab('dag');
     setDagEditorError('');
-    setUiNotice('Cleared local workflow templates');
+    setUiNotice('Cleared local workflows');
   };
 
   const pageTitle =
@@ -5585,34 +7238,18 @@ function HomeCard({ message, onLogout, loading }) {
       : activeSection === 'workflows'
         ? selectedWorkflow?.name || 'Workflow Creator'
         : activeSection === 'workflowRuns'
-          ? workflowRunsTab === 'live'
-            ? workflows.find((workflow) => workflow.id === runWorkflowTargetId)?.name ||
-              selectedWorkflow?.name ||
-              'Workflows & Runs'
-            : selectedWorkflowRun?.workflowName || 'Workflows & Runs'
+          ? selectedWorkflowRun?.workflowName || 'Runs'
           : activeSection === 'settings'
             ? 'Settings'
             : 'Workspace';
 
-  const pageSubtitle =
-    activeSection === 'dashboard'
-      ? 'Create and manage agent workflows generated from natural language prompts.'
-      : activeSection === 'workflows'
-        ? 'Inspect and edit workflow templates, graphs, agents, and contracts directly on the canvas.'
-        : activeSection === 'workflowRuns'
-          ? workflowRunsTab === 'live'
-            ? 'Gather inputs and documents before launch, then watch deliverables populate in a live file viewer.'
-            : 'Monitor live backend workflow execution, agent status, and categorized logs.'
-          : activeSection === 'settings'
-            ? 'Configure local demo storage and frontend runtime behavior.'
-            : 'Workspace';
+  const showWorkspaceHeader = activeSection !== 'workflowRuns';
 
   return (
-    <section className="home-shell" aria-labelledby="home-title">
+    <section className="home-shell" aria-label={pageTitle}>
       <div className="app-layout">
         <aside className="sidebar" aria-label="App navigation">
           <div className="sidebar-brand">
-            <div className="chip">ninth seat</div>
             <p className="sidebar-brand-title">Agent Workflow Builder</p>
             <p className="sidebar-brand-copy">Prompt-to-DAG planning and workflow execution UI.</p>
           </div>
@@ -5626,17 +7263,11 @@ function HomeCard({ message, onLogout, loading }) {
                 onClick={() => setActiveSection(tab.id)}
               >
                 <span>{tab.label}</span>
-                {tab.id === 'workflows' ? <small>{workflows.length}</small> : null}
-                {tab.id === 'workflowRuns' ? <small>{runs.length}</small> : null}
               </button>
             ))}
           </nav>
 
           <div className="sidebar-footer">
-            <div className="sidebar-session">
-              <span className="chip subtle-chip">authenticated</span>
-              <p className="sidebar-footnote">Templates are local. Workflow run execution/logs come from the backend runtime.</p>
-            </div>
             <button type="button" className="button ghost button-compact" onClick={onLogout} disabled={loading}>
               {loading ? 'Signing out…' : 'Logout'}
             </button>
@@ -5644,23 +7275,17 @@ function HomeCard({ message, onLogout, loading }) {
         </aside>
 
         <div className="workspace">
-          <header className="workspace-header">
-            <div>
-              <p className="eyebrow">frontend mvp</p>
-              <h1 id="home-title">{pageTitle}</h1>
-              <p className="subtitle workspace-subtitle">{pageSubtitle}</p>
-            </div>
-            {uiNotice ? (
+          {showWorkspaceHeader && uiNotice ? (
+            <header className="workspace-header">
               <div className="workspace-actions">
                 <p className="inline-toast">{uiNotice}</p>
               </div>
-            ) : null}
-          </header>
+            </header>
+          ) : null}
 
           <div className="workspace-content">
             {activeSection === 'dashboard' ? (
               <DashboardView
-                homeMessage={message}
                 workflows={workflows}
                 runs={runs}
                 onOpenNewWorkflow={() => setIsNewWorkflowOpen(true)}
@@ -5697,31 +7322,31 @@ function HomeCard({ message, onLogout, loading }) {
                 onAddEdge={handleAddEdge}
                 onUpdateEdge={handleUpdateEdge}
                 onDeleteEdge={handleDeleteEdge}
+                startPanelWorkflowId={runWorkflowTargetId}
+                startLoading={runModalLoading}
+                startError={runModalError}
+                onStartRun={handleSubmitRunWorkflow}
+                onCloseStartPanel={() => {
+                  setRunWorkflowTargetId(null);
+                  setRunModalError('');
+                }}
+                onClearStartError={() => setRunModalError('')}
               />
             ) : null}
 
             {activeSection === 'workflowRuns' ? (
               <WorkflowRunsWorkspaceView
-                activeTab={workflowRunsTab}
-                onSelectTab={setWorkflowRunsTab}
-                workflows={workflows}
-                preferredWorkflowId={runWorkflowTargetId || selectedWorkflowId}
                 runs={runs}
                 selectedRun={selectedWorkflowRun}
                 selectedRunId={selectedWorkflowRunId}
                 runsLoading={runsLoading}
                 runsError={runsError}
-                startLoading={runModalLoading}
-                startError={runModalError}
-                onStartRun={handleSubmitRunWorkflow}
                 onSelectRun={handleSelectWorkflowRun}
                 onRefreshRunList={() => refreshWorkflowRunList({ silent: false })}
                 onRefreshRun={(runId) => refreshWorkflowRunDetail(runId, { silent: false })}
                 onCancelRun={handleCancelWorkflowRun}
                 onDeleteRun={handleDeleteWorkflowRun}
                 onOpenTemplate={handleSelectWorkflow}
-                onSelectWorkflowForLive={handleSelectWorkflowForLive}
-                onClearStartError={() => setRunModalError('')}
               />
             ) : null}
 
@@ -5833,13 +7458,8 @@ function App() {
 
   return (
     <main className="app-shell">
-      <DotField />
-      <div className="ambient ambient-a" aria-hidden="true" />
-      <div className="ambient ambient-b" aria-hidden="true" />
-
       {!authChecked ? (
         <section className="panel loading-panel">
-          <div className="chip">initializing</div>
           <p className="subtitle">Checking session…</p>
         </section>
       ) : authenticated ? (

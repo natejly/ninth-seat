@@ -1,0 +1,81 @@
+0 verbose cli /Users/natejly/.nvm/versions/node/v20.16.0/bin/node /Users/natejly/.nvm/versions/node/v20.16.0/bin/npm
+1 info using npm@10.8.1
+2 info using node@v20.16.0
+3 silly config load:file:/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_432e33ca8a7d/workspace/calculator-app/.npmrc
+5 silly config load:file:/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_432e33ca8a7d/workspace/.npmrc
+6 silly config load:file:/Users/natejly/.nvm/versions/node/v20.16.0/etc/npmrc
+7 verbose title npm install
+8 verbose argv "install"
+9 verbose logfile logs-max:10 dir:/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_432e33ca8a7d/workspace/.npm/_logs/2026-02-24T15_41_33_736Z-
+10 verbose logfile /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_432e33ca8a7d/workspace/.npm/_logs/2026-02-24T15_41_33_736Z-debug-0.log
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly logfile done cleaning log files
+13 silly idealTree buildDeps
+14 silly fetch manifest react@^19.2.0
+15 silly packumentCache full:https://registry.npmjs.org/react cache-miss
+16 silly fetch manifest react-dom@^19.2.0
+17 silly packumentCache full:https://registry.npmjs.org/react-dom cache-miss
+18 silly fetch manifest @eslint/js@^9.39.1
+19 silly packumentCache full:https://registry.npmjs.org/@eslint%2fjs cache-miss
+20 http fetch GET 200 https://registry.npmjs.org/@eslint%2fjs 9ms (cache hit)
+21 silly packumentCache full:https://registry.npmjs.org/@eslint%2fjs set size:138411 disposed:false
+22 silly fetch manifest @types/node@^24.10.1
+23 silly packumentCache full:https://registry.npmjs.org/@types%2fnode cache-miss
+24 silly fetch manifest @types/react@^19.2.7
+25 silly packumentCache full:https://registry.npmjs.org/@types%2freact cache-miss
+26 http fetch GET 200 https://registry.npmjs.org/@types%2freact 11ms (cache hit)
+27 silly packumentCache full:https://registry.npmjs.org/@types%2freact set size:2588986 disposed:false
+28 silly fetch manifest @types/react-dom@^19.2.3
+29 silly packumentCache full:https://registry.npmjs.org/@types%2freact-dom cache-miss
+30 http fetch GET 200 https://registry.npmjs.org/@types%2freact-dom 4ms (cache hit)
+31 silly packumentCache full:https://registry.npmjs.org/@types%2freact-dom set size:429026 disposed:false
+32 silly fetch manifest @vitejs/plugin-react@^5.1.4
+33 silly packumentCache full:https://registry.npmjs.org/@vitejs%2fplugin-react cache-miss
+34 http fetch GET 200 https://registry.npmjs.org/@vitejs%2fplugin-react 2ms (cache hit)
+35 silly packumentCache full:https://registry.npmjs.org/@vitejs%2fplugin-react set size:251316 disposed:false
+36 silly fetch manifest vite@^7.0.0
+37 silly packumentCache full:https://registry.npmjs.org/vite cache-miss
+38 silly fetch manifest vite@^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
+39 silly packumentCache full:https://registry.npmjs.org/vite cache-miss
+40 verbose stack Error: unable to resolve dependency tree
+40 verbose stack     at #failPeerConflict (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:1360:25)
+40 verbose stack     at #loadPeerSet (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:1326:33)
+40 verbose stack     at async #buildDepStep (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:901:11)
+40 verbose stack     at async Arborist.buildIdealTree (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:181:7)
+40 verbose stack     at async Promise.all (index 1)
+40 verbose stack     at async Arborist.reify (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:131:5)
+40 verbose stack     at async Install.exec (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/lib/commands/install.js:150:5)
+40 verbose stack     at async Npm.exec (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/lib/npm.js:207:9)
+40 verbose stack     at async module.exports (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/lib/cli/entry.js:74:5)
+41 error code ERESOLVE
+42 error ERESOLVE unable to resolve dependency tree
+43 error
+44 error While resolving: calculator-app@0.0.0
+44 error Found: vite@undefined
+44 error node_modules/vite
+44 error   dev vite@"^7.0.0" from the root project
+44 error
+44 error Could not resolve dependency:
+44 error peer vite@"^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" from @vitejs/plugin-react@5.1.4
+44 error node_modules/@vitejs/plugin-react
+44 error   dev @vitejs/plugin-react@"^5.1.4" from the root project
+44 error
+44 error Fix the upstream dependency conflict, or retry
+44 error this command with --force or --legacy-peer-deps
+44 error to accept an incorrect (and potentially broken) dependency resolution.
+45 error
+45 error
+45 error For a full report see:
+45 error /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_432e33ca8a7d/workspace/.npm/_logs/2026-02-24T15_41_33_736Z-eresolve-report.txt
+46 silly unfinished npm timer reify 1771947693931
+47 silly unfinished npm timer reify:loadTrees 1771947693934
+48 silly unfinished npm timer idealTree:buildDeps 1771947693940
+49 silly unfinished npm timer idealTree:#root 1771947693940
+50 verbose cwd /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_432e33ca8a7d/workspace/calculator-app
+51 verbose os Darwin 25.2.0
+52 verbose node v20.16.0
+53 verbose npm  v10.8.1
+54 verbose exit 1
+55 verbose code 1
+56 error A complete log of this run can be found in: /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_432e33ca8a7d/workspace/.npm/_logs/2026-02-24T15_41_33_736Z-debug-0.log

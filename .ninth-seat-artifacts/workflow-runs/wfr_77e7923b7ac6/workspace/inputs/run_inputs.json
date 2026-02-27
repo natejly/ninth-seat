@@ -1,0 +1,31 @@
+{
+  "app_idea_problem_statement": "build me a calculator app",
+  "target_users_roles": "web aoo",
+  "core_features_must_have_list": "4 funbction calculaator",
+  "authentication_requirement": "none",
+  "data_persistence": "none",
+  "integrations": "none",
+  "design_preference": "react",
+  "tech_constraints": "non",
+  "live_brief": "build me a calculator app",
+  "live_session_messages": [
+    {
+      "role": "system",
+      "text": "Selected DAG workflow to design, implement, and. Fill required inputs and upload supporting documents before starting the run."
+    },
+    {
+      "role": "user",
+      "text": "build me a calculator app"
+    }
+  ],
+  "workflowTemplateInputs": [
+    "app_idea_problem_statement",
+    "target_users_roles",
+    "core_features_must_have_list",
+    "authentication_requirement",
+    "data_persistence",
+    "integrations",
+    "design_preference",
+    "tech_constraints"
+  ]
+}

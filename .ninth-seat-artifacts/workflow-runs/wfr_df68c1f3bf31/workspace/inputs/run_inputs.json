@@ -1,0 +1,18 @@
+{
+  "app_idea_description": "I want a 4 function calculator app",
+  "target_users_roles": "",
+  "core_mvp_features": "",
+  "non_functional_requirements": "",
+  "tech_preferences": "",
+  "ui_preferences": "",
+  "deployment_target": "local web",
+  "workflowTemplateInputs": [
+    "app_idea_description",
+    "target_users_roles",
+    "core_mvp_features",
+    "non_functional_requirements",
+    "tech_preferences",
+    "ui_preferences",
+    "deployment_target"
+  ]
+}

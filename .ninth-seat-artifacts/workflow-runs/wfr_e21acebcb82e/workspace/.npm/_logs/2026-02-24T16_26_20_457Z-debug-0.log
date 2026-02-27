@@ -1,0 +1,37 @@
+0 verbose cli /Users/natejly/.nvm/versions/node/v20.16.0/bin/node /Users/natejly/.nvm/versions/node/v20.16.0/bin/npm
+1 info using npm@10.8.1
+2 info using node@v20.16.0
+3 silly config load:file:/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace/.npmrc
+5 silly config load:file:/Users/natejly/.nvm/versions/node/v20.16.0/etc/npmrc
+6 verbose title npm create vite@7.5.0 . --template react-ts
+7 verbose argv "create" "vite@7.5.0" "." "--" "--template" "react-ts"
+8 verbose logfile logs-max:10 dir:/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace/.npm/_logs/2026-02-24T16_26_20_457Z-
+9 verbose logfile /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace/.npm/_logs/2026-02-24T16_26_20_457Z-debug-0.log
+10 silly logfile start cleaning logs, removing 1 files
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+13 http fetch GET 200 https://registry.npmjs.org/create-vite 450ms (cache revalidated)
+14 verbose type version
+15 verbose stack create-vite: No matching version found for create-vite@7.5.0.
+15 verbose stack     at module.exports (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/npm-pick-manifest/lib/index.js:209:23)
+15 verbose stack     at RegistryFetcher.manifest (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/pacote/lib/registry.js:130:54)
+15 verbose stack     at async getManifest (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/libnpmexec/lib/index.js:27:22)
+15 verbose stack     at async missingFromTree (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/libnpmexec/lib/index.js:56:22)
+15 verbose stack     at async /Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/libnpmexec/lib/index.js:178:32
+15 verbose stack     at async Promise.all (index 0)
+15 verbose stack     at async exec (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/libnpmexec/lib/index.js:176:3)
+15 verbose stack     at async Init.execCreate (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/lib/commands/init.js:136:5)
+15 verbose stack     at async Init.exec (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/lib/commands/init.js:44:14)
+15 verbose stack     at async Npm.exec (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/lib/npm.js:207:9)
+16 error code ETARGET
+17 error notarget No matching version found for create-vite@7.5.0.
+18 error notarget In most cases you or one of your dependencies are requesting
+18 error notarget a package version that doesn't exist.
+19 verbose cwd /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace
+20 verbose os Darwin 25.2.0
+21 verbose node v20.16.0
+22 verbose npm  v10.8.1
+23 verbose exit 1
+24 verbose code 1
+25 error A complete log of this run can be found in: /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace/.npm/_logs/2026-02-24T16_26_20_457Z-debug-0.log

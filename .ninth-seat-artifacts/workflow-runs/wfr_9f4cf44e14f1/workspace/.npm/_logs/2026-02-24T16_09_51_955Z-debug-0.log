@@ -1,0 +1,39 @@
+0 verbose cli /Users/natejly/.nvm/versions/node/v20.16.0/bin/node /Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/bin/npm-cli.js
+1 info using npm@10.8.1
+2 info using node@v20.16.0
+3 silly config load:file:/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_9f4cf44e14f1/workspace/.npmrc
+5 silly config load:file:/Users/natejly/.nvm/versions/node/v20.16.0/etc/npmrc
+6 verbose title npm exec create-vite@5.5.2 . --template react-ts
+7 verbose argv "exec" "--yes" "--" "create-vite@5.5.2" "." "--template" "react-ts"
+8 verbose logfile logs-max:10 dir:/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_9f4cf44e14f1/workspace/.npm/_logs/2026-02-24T16_09_51_955Z-
+9 verbose logfile /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_9f4cf44e14f1/workspace/.npm/_logs/2026-02-24T16_09_51_955Z-debug-0.log
+10 silly logfile done cleaning log files
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 http fetch GET 200 https://registry.npmjs.org/create-vite 82ms (cache miss)
+13 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+14 http fetch GET 200 https://registry.npmjs.org/npm 145ms
+15 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+16 silly idealTree buildDeps
+17 silly fetch manifest create-vite@5.5.2
+18 silly packumentCache full:https://registry.npmjs.org/create-vite cache-miss
+19 http fetch GET 200 https://registry.npmjs.org/create-vite 41ms (cache miss)
+20 silly packumentCache full:https://registry.npmjs.org/create-vite set size:undefined disposed:false
+21 silly placeDep ROOT create-vite@5.5.2 OK for:  want: 5.5.2
+22 silly reify moves {}
+23 silly audit bulk request { 'create-vite': [ '5.5.2' ] }
+24 silly tarball no local data for create-vite@https://registry.npmjs.org/create-vite/-/create-vite-5.5.2.tgz. Extracting by manifest.
+25 http fetch GET 200 https://registry.npmjs.org/create-vite/-/create-vite-5.5.2.tgz 73ms (cache miss)
+26 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 119ms
+27 silly audit report {}
+28 verbose cwd /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_9f4cf44e14f1/workspace
+29 verbose os Darwin 25.2.0
+30 verbose node v20.16.0
+31 verbose npm  v10.8.1
+32 notice
+32 notice New major version of npm available! 10.8.1 -> 11.10.1
+32 notice Changelog: https://github.com/npm/cli/releases/tag/v11.10.1
+32 notice To update run: npm install -g npm@11.10.1
+32 notice  { force: true, [Symbol(proc-log.meta)]: true }
+33 verbose exit 0
+34 info ok

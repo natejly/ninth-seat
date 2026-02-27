@@ -1,0 +1,19 @@
+{
+  "app_idea": "calculator",
+  "target_users": "web users",
+  "key_features": "4 function",
+  "deployment_target": "none",
+  "live_brief": "Calculator app",
+  "live_session_messages": [
+    {
+      "role": "system",
+      "text": "Selected Workflow for AI-assisted fullstack app de…. Fill required inputs and upload supporting documents before starting the run."
+    }
+  ],
+  "workflowTemplateInputs": [
+    "app_idea",
+    "target_users",
+    "key_features",
+    "deployment_target"
+  ]
+}

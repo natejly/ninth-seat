@@ -78,78 +78,6 @@ def _slugify(text: str, *, fallback: str) -> str:
     return slug or fallback
 
 
-def _fallback_plan(task: str) -> WorkflowPlan:
-    topic = task.strip() or "requested task"
-    return WorkflowPlan(
-        summary=f"Plan the work, branch into research/implementation, then review before delivery for: {topic}.",
-        nodes=[
-            WorkflowNode(
-                id="intake_agent",
-                name="Intake Agent",
-                role="Clarify scope",
-                objective="Extract the goal, constraints, and success criteria from the task.",
-            ),
-            WorkflowNode(
-                id="planner_agent",
-                name="Planner Agent",
-                role="Design execution steps",
-                objective="Create a concrete execution plan and identify parallelizable work.",
-            ),
-            WorkflowNode(
-                id="research_agent",
-                name="Research Agent",
-                role="Gather supporting context",
-                objective="Collect facts, references, and dependencies needed to execute safely.",
-            ),
-            WorkflowNode(
-                id="builder_agent",
-                name="Builder Agent",
-                role="Produce the deliverable",
-                objective="Execute the plan using the research output and task constraints.",
-            ),
-            WorkflowNode(
-                id="review_agent",
-                name="Review Agent",
-                role="Quality and risk check",
-                objective="Verify completeness, flag risks, and prepare the final response.",
-            ),
-        ],
-        edges=[
-            WorkflowEdge(source="intake_agent", target="planner_agent", handoff="task brief"),
-            WorkflowEdge(source="planner_agent", target="research_agent", handoff="research questions"),
-            WorkflowEdge(source="planner_agent", target="builder_agent", handoff="execution plan"),
-            WorkflowEdge(source="research_agent", target="builder_agent", handoff="findings"),
-            WorkflowEdge(source="builder_agent", target="review_agent", handoff="draft output"),
-        ],
-        inputs=[
-            WorkflowInputModule(
-                name="user_request",
-                type="long_text",
-                required=True,
-                description="Primary request or goal for the workflow execution.",
-            ),
-            WorkflowInputModule(
-                name="context_files",
-                type="file_upload",
-                required=False,
-                description="Optional files, docs, or references used as context.",
-            ),
-        ],
-        deliverables=[
-            WorkflowDeliverableSpec(
-                name="final_response",
-                type="markdown",
-                description="Final user-facing response or recommendation.",
-            ),
-            WorkflowDeliverableSpec(
-                name="execution_notes",
-                type="text",
-                description="Supporting notes, assumptions, and next steps.",
-            ),
-        ],
-    )
-
-
 def _normalize_module_type(raw_type: str, *, fallback: str) -> str:
     allowed = {
         "user_input",
@@ -234,7 +162,7 @@ def _normalize_contract(
     return normalized_inputs, normalized_deliverables
 
 
-def _normalize_plan(plan: WorkflowPlan, task: str) -> WorkflowPlan:
+def _normalize_plan(plan: WorkflowPlan, _task: str) -> WorkflowPlan:
     normalized_nodes: list[WorkflowNode] = []
     seen_ids: set[str] = set()
 
@@ -257,7 +185,7 @@ def _normalize_plan(plan: WorkflowPlan, task: str) -> WorkflowPlan:
         )
 
     if len(normalized_nodes) < 2:
-        return _fallback_plan(task)
+        raise RuntimeError("Planner produced fewer than 2 workflow nodes after normalization")
 
     valid_ids = {node.id for node in normalized_nodes}
     dedup_edges: list[WorkflowEdge] = []
@@ -342,7 +270,7 @@ def _llm_plan(task: str) -> tuple[WorkflowPlan, str]:
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY is not configured")
 
-    model_name = os.getenv("WORKFLOW_MODEL", "gpt-4.1-mini")
+    model_name = os.getenv("WORKFLOW_MODEL", "gpt-5.2")
     llm = ChatOpenAI(model=model_name, temperature=0)
     planner = llm.with_structured_output(WorkflowPlan)
 
@@ -433,15 +361,8 @@ def generate_workflow_plan(task: str) -> dict[str, Any]:
         raise ValueError("Task description is required")
 
     warnings: list[str] = []
-    generation_mode = "fallback_rule_based"
-    model_name: str | None = None
-
-    try:
-        raw_plan, model_name = _llm_plan(cleaned_task)
-        generation_mode = "langchain_openai"
-    except Exception as exc:
-        warnings.append(f"Using fallback planner: {exc}")
-        raw_plan = _fallback_plan(cleaned_task)
+    raw_plan, model_name = _llm_plan(cleaned_task)
+    generation_mode = "langchain_openai"
 
     plan = _normalize_plan(raw_plan, cleaned_task)
     graph_meta = _build_langgraph(plan, cleaned_task)

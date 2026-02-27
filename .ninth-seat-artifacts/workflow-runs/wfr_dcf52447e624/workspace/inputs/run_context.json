@@ -1,0 +1,9 @@
+{
+  "runId": "wfr_dcf52447e624",
+  "workflowId": "wf_test",
+  "workflowName": "Test",
+  "requestedDeliverables": [
+    "fullstack_app_code"
+  ],
+  "createdAt": "2026-02-24T14:57:46.182955+00:00"
+}

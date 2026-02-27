@@ -1,0 +1,13 @@
+{
+  "runId": "wfr_9eb6afb94282",
+  "workflowId": "wf_i645lv_mm0r571v",
+  "workflowName": "DAG workflow to design, implement, and",
+  "requestedDeliverables": [
+    "mvp_scope_acceptance_criteria",
+    "architecture_api_db_design_pack",
+    "fullstack_runnable_code_bundle",
+    "dev_deployment_runbook",
+    "final_review_report"
+  ],
+  "createdAt": "2026-02-24T15:37:37.018502+00:00"
+}

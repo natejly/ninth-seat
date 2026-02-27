@@ -1,0 +1,28 @@
+[
+  {
+    "inputKey": "uploaded_documents",
+    "name": "notes.txt",
+    "savedPath": "/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_dcf52447e624/workspace/user_uploads/uploaded_documents/notes.txt",
+    "relativePath": "user_uploads/uploaded_documents/notes.txt",
+    "mimeType": "text/plain",
+    "sizeBytes": null,
+    "kind": "text",
+    "truncated": false,
+    "writeMode": "text",
+    "decodeStatus": "ok",
+    "metadataPath": null
+  },
+  {
+    "inputKey": "uploaded_documents",
+    "name": "bin.dat",
+    "savedPath": "/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_dcf52447e624/workspace/user_uploads/uploaded_documents/bin.dat",
+    "relativePath": "user_uploads/uploaded_documents/bin.dat",
+    "mimeType": "application/octet-stream",
+    "sizeBytes": null,
+    "kind": "data_url",
+    "truncated": false,
+    "writeMode": "binary",
+    "decodeStatus": "base64",
+    "metadataPath": null
+  }
+]

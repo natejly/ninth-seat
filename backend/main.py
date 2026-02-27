@@ -1,9 +1,11 @@
+import json
 import os
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -57,6 +59,7 @@ try:
         delete_workflow_run,
         get_workflow_run,
         list_workflow_runs,
+        stream_workflow_run_events,
     )
 except ModuleNotFoundError as exc:
     if exc.name != "backend":
@@ -68,6 +71,7 @@ except ModuleNotFoundError as exc:
         delete_workflow_run,
         get_workflow_run,
         list_workflow_runs,
+        stream_workflow_run_events,
     )
 
 
@@ -255,6 +259,52 @@ def workflow_runs_get(run_id: str, request: Request) -> dict[str, Any]:
     return run
 
 
+@router.get("/workflow-runs/{run_id}/workspace-file")
+def workflow_runs_workspace_file(
+    run_id: str,
+    request: Request,
+    path: str,
+    max_chars: int = 80_000,
+) -> dict[str, Any]:
+    if not _is_authenticated(request):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    run = get_workflow_run(run_id)
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow run not found",
+        )
+
+    workspace = run.get("workspace")
+    if not isinstance(workspace, dict) or not isinstance(workspace.get("root"), str):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Workflow run does not have a readable workspace",
+        )
+
+    safe_max_chars = max(100, min(int(max_chars), 200_000))
+    try:
+        return run_tool(
+            "workspace_read_file",
+            {"path": path, "max_chars": safe_max_chars},
+            context={"workspace": workspace},
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to read workspace file: {exc}",
+        ) from exc
+
+
 @router.post("/workflow-runs/{run_id}/cancel")
 def workflow_runs_cancel(run_id: str, request: Request) -> dict[str, Any]:
     if not _is_authenticated(request):
@@ -270,6 +320,38 @@ def workflow_runs_cancel(run_id: str, request: Request) -> dict[str, Any]:
             detail="Workflow run not found",
         )
     return run
+
+
+@router.get("/workflow-runs/{run_id}/stream")
+def workflow_runs_stream(run_id: str, request: Request, last_seq: int = -1):
+    if not _is_authenticated(request):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    run = get_workflow_run(run_id)
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow run not found",
+        )
+
+    def _event_generator():
+        for item in stream_workflow_run_events(run_id, last_seq=last_seq, poll_interval=0.3):
+            event_type = item.get("event", "message")
+            data = item.get("data", {})
+            yield f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False, default=str)}\n\n"
+
+    return StreamingResponse(
+        _event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.delete("/workflow-runs/{run_id}")

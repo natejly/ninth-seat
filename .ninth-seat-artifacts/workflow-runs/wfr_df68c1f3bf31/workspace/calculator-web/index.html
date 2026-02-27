@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculator</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <main class="app" aria-label="Calculator app">
+      <header class="app__header">
+        <h1 class="app__title">Calculator</h1>
+        <p class="app__subtitle">4-function calculator (keyboard + buttons)</p>
+      </header>
+
+      <section class="calc" aria-label="Calculator">
+        <div class="calc__display" role="group" aria-label="Display">
+          <div id="calc-status" class="calc__status" aria-live="polite"></div>
+          <output
+            id="calc-display"
+            class="calc__output"
+            aria-live="polite"
+            aria-atomic="true"
+          >0</output>
+        </div>
+
+        <div class="calc__keys" role="group" aria-label="Keypad">
+          <button class="key key--fn" data-action="clear" type="button">AC</button>
+          <button class="key key--fn" data-action="sign" type="button">±</button>
+          <button class="key key--fn" data-action="percent" type="button">%</button>
+          <button class="key key--op" data-action="operator" data-value="/" type="button">÷</button>
+
+          <button class="key" data-action="digit" data-value="7" type="button">7</button>
+          <button class="key" data-action="digit" data-value="8" type="button">8</button>
+          <button class="key" data-action="digit" data-value="9" type="button">9</button>
+          <button class="key key--op" data-action="operator" data-value="*" type="button">×</button>
+
+          <button class="key" data-action="digit" data-value="4" type="button">4</button>
+          <button class="key" data-action="digit" data-value="5" type="button">5</button>
+          <button class="key" data-action="digit" data-value="6" type="button">6</button>
+          <button class="key key--op" data-action="operator" data-value="-" type="button">−</button>
+
+          <button class="key" data-action="digit" data-value="1" type="button">1</button>
+          <button class="key" data-action="digit" data-value="2" type="button">2</button>
+          <button class="key" data-action="digit" data-value="3" type="button">3</button>
+          <button class="key key--op" data-action="operator" data-value="+" type="button">+</button>
+
+          <button class="key key--wide" data-action="digit" data-value="0" type="button">0</button>
+          <button class="key" data-action="decimal" type="button">.</button>
+          <button class="key key--eq" data-action="equals" type="button">=</button>
+        </div>
+
+        <div class="calc__help" aria-label="Keyboard help">
+          <details>
+            <summary>Keyboard shortcuts</summary>
+            <ul>
+              <li><kbd>0</kbd>–<kbd>9</kbd>: digits</li>
+              <li><kbd>.</kbd>: decimal</li>
+              <li><kbd>+</kbd> <kbd>-</kbd> <kbd>*</kbd> <kbd>/</kbd>: operators</li>
+              <li><kbd>Enter</kbd> or <kbd>=</kbd>: equals</li>
+              <li><kbd>Backspace</kbd>: delete</li>
+              <li><kbd>Escape</kbd>: clear</li>
+            </ul>
+          </details>
+        </div>
+      </section>
+
+      <footer class="app__footer">
+        <small>Static app. No data stored.</small>
+      </footer>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

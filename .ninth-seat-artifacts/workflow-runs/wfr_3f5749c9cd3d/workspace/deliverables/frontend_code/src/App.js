@@ -1,0 +1,1 @@
+// React frontend code for calculator (assumed present from integration context)

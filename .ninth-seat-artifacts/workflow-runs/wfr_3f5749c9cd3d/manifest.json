@@ -1,0 +1,62 @@
+{
+  "runId": "wfr_3f5749c9cd3d",
+  "workflowId": "wf_7rt80m_mm0qft6q",
+  "workflowName": "Workflow for AI-assisted fullstack app de…",
+  "createdAt": "2026-02-24T15:01:08.280110+00:00",
+  "deliverables": [
+    {
+      "name": "final-output.md",
+      "artifactKind": "file",
+      "path": "/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_3f5749c9cd3d/workspace/deliverables/final-output.md",
+      "sizeBytes": 644
+    },
+    {
+      "name": "requirements_spec",
+      "artifactKind": "file",
+      "path": "/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_3f5749c9cd3d/workspace/deliverables/requirements_spec",
+      "sizeBytes": 615
+    },
+    {
+      "name": "design_doc",
+      "artifactKind": "file",
+      "path": "/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_3f5749c9cd3d/workspace/deliverables/design_doc",
+      "sizeBytes": 608
+    },
+    {
+      "name": "frontend_code",
+      "artifactKind": "directory",
+      "path": "/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_3f5749c9cd3d/workspace/deliverables/frontend_code",
+      "fileCount": 2
+    },
+    {
+      "name": "backend_code",
+      "artifactKind": "directory",
+      "path": "/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_3f5749c9cd3d/workspace/deliverables/backend_code",
+      "fileCount": 1
+    },
+    {
+      "name": "test_report",
+      "artifactKind": "directory",
+      "path": "/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_3f5749c9cd3d/workspace/deliverables/test_report",
+      "fileCount": 1
+    },
+    {
+      "name": "deployment_report",
+      "artifactKind": "directory",
+      "path": "/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_3f5749c9cd3d/workspace/deliverables/deployment_report",
+      "fileCount": 1
+    },
+    {
+      "name": "app_url",
+      "artifactKind": "directory",
+      "path": "/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_3f5749c9cd3d/workspace/deliverables/app_url",
+      "fileCount": 1
+    },
+    {
+      "name": "final_review_report",
+      "artifactKind": "directory",
+      "path": "/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_3f5749c9cd3d/workspace/deliverables/final_review_report",
+      "fileCount": 1
+    }
+  ]
+}

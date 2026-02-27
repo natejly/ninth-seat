@@ -1,0 +1,9 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "4-Function Calculator MVP",
+    "version": "0.1.0",
+    "description": "MVP is a static web app; no backend API. This spec is intentionally empty."
+  },
+  "paths": {}
+}

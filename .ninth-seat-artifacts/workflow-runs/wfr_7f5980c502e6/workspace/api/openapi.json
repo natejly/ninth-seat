@@ -1,0 +1,175 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Simple Calculator API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" }
+                  },
+                  "required": ["status"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/evaluate": {
+      "post": {
+        "summary": "Evaluate a single binary operation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/history/events": {
+      "post": {
+        "summary": "(Optional) Record a calculation event",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoryEventCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryEvent"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "(Optional) List recent history events",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 500, "default": 50 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/HistoryEvent" }
+                    }
+                  },
+                  "required": ["items"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EvaluateRequest": {
+        "type": "object",
+        "properties": {
+          "operandA": { "type": "string", "example": "2.5" },
+          "operator": { "type": "string", "enum": ["+", "-", "*", "/"] },
+          "operandB": { "type": "string", "example": "4" }
+        },
+        "required": ["operandA", "operator", "operandB"]
+      },
+      "EvaluateResponse": {
+        "type": "object",
+        "properties": {
+          "result": { "type": "string", "example": "6.5" },
+          "error": { "type": ["string", "null"], "example": null }
+        },
+        "required": ["result", "error"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        },
+        "required": ["error"]
+      },
+      "HistoryEventCreate": {
+        "type": "object",
+        "properties": {
+          "sessionId": { "type": "string", "format": "uuid" },
+          "expression": { "type": "string", "example": "2+3" },
+          "result": { "type": "string", "example": "5" },
+          "error": { "type": ["string", "null"], "example": null }
+        },
+        "required": ["sessionId", "expression", "result", "error"]
+      },
+      "HistoryEvent": {
+        "allOf": [
+          { "$ref": "#/components/schemas/HistoryEventCreate" },
+          {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "createdAt": { "type": "string", "format": "date-time" }
+            },
+            "required": ["id", "createdAt"]
+          }
+        ]
+      }
+    }
+  }
+}

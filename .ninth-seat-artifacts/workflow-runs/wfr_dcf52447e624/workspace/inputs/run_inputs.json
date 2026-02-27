@@ -1,0 +1,21 @@
+{
+  "uploaded_documents": [
+    {
+      "id": "u1",
+      "name": "notes.txt",
+      "mimeType": "text/plain",
+      "kind": "text",
+      "content": "hello world",
+      "truncated": false
+    },
+    {
+      "id": "u2",
+      "name": "bin.dat",
+      "mimeType": "application/octet-stream",
+      "kind": "data_url",
+      "content": "data:application/octet-stream;base64,YWJj",
+      "truncated": false
+    }
+  ],
+  "x": 1
+}

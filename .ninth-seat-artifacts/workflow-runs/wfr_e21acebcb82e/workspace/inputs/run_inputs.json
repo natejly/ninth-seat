@@ -1,0 +1,20 @@
+{
+  "app_idea_problem_statement": "4 function calculator app",
+  "target_users_roles": "",
+  "core_features_must_have_list": "4 function calculator app",
+  "authentication_requirement": "no",
+  "data_persistence": "no",
+  "integrations": "",
+  "design_preference": "",
+  "tech_constraints": "",
+  "workflowTemplateInputs": [
+    "app_idea_problem_statement",
+    "target_users_roles",
+    "core_features_must_have_list",
+    "authentication_requirement",
+    "data_persistence",
+    "integrations",
+    "design_preference",
+    "tech_constraints"
+  ]
+}

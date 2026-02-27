@@ -1,0 +1,15 @@
+{
+  "runId": "wfr_7f5980c502e6",
+  "workflowId": "wf_3fm5o6_mm0w1qdi",
+  "workflowName": "A practical, minimal fullstack app develo…",
+  "requestedDeliverables": [
+    "requirements_acceptance_criteria",
+    "architecture_api_contracts_data_model",
+    "backend_code_bundle",
+    "frontend_code_bundle",
+    "integrated_fullstack_app_bundle",
+    "qa_test_pack",
+    "final_review_handoff"
+  ],
+  "createdAt": "2026-02-24T17:52:07.208366+00:00"
+}

@@ -42,15 +42,11 @@ select {
 .app-shell {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
+  overflow: auto;
   display: grid;
   place-items: center;
-  padding: 8px;
-  background:
-    radial-gradient(circle at 16% 10%, rgba(255, 255, 255, 0.05), transparent 42%),
-    radial-gradient(circle at 88% 14%, rgba(130, 150, 175, 0.11), transparent 40%),
-    radial-gradient(circle at 55% 100%, rgba(255, 255, 255, 0.04), transparent 58%),
-    #05070b;
+  padding: 12px;
+  background: #07090d;
 }
 
 .dot-field {
@@ -91,13 +87,10 @@ select {
   z-index: 1;
   width: min(460px, 100%);
   padding: 24px;
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(18, 23, 31, 0.92) 0%, rgba(10, 13, 18, 0.9) 100%);
+  border-radius: 10px;
+  background: rgba(10, 13, 18, 0.96);
   border: 1px solid var(--panel-border);
-  box-shadow:
-    0 22px 72px -36px var(--shadow),
-    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
-  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 32px -24px var(--shadow);
 }
 
 .home-panel {
@@ -233,17 +226,12 @@ p {
   color: var(--accent);
   background: rgba(255, 255, 255, 0.035);
   cursor: pointer;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+  transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
 }
 
 .button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.055);
-  border-color: rgba(223, 232, 245, 0.24);
-}
-
-.button:active:not(:disabled) {
-  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(223, 232, 245, 0.2);
 }
 
 .button:disabled {
@@ -302,8 +290,7 @@ p {
 .workspace {
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(7, 10, 14, 0.68);
-  backdrop-filter: blur(8px);
+  background: rgba(8, 11, 15, 0.95);
 }
 
 .sidebar {
@@ -352,23 +339,22 @@ p {
   gap: 10px;
   padding: 10px 12px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  background: rgba(255, 255, 255, 0.012);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent;
   color: var(--text);
   cursor: pointer;
   text-align: left;
-  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+  transition: background 120ms ease, border-color 120ms ease;
 }
 
 .sidebar-tab:hover {
-  transform: translateY(-1px);
   background: rgba(255, 255, 255, 0.02);
   border-color: rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-tab.active {
-  background: linear-gradient(180deg, rgba(222, 232, 244, 0.08), rgba(255, 255, 255, 0.02));
-  border-color: rgba(223, 232, 245, 0.18);
+  background: rgba(223, 232, 245, 0.06);
+  border-color: rgba(223, 232, 245, 0.14);
   color: var(--accent);
 }
 
@@ -399,6 +385,7 @@ p {
 .workspace {
   display: grid;
   grid-template-rows: auto 1fr;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -438,6 +425,8 @@ p {
 }
 
 .workspace-content {
+  grid-row: 2;
+  min-width: 0;
   min-height: 0;
   overflow: auto;
   padding: 16px;
@@ -467,10 +456,7 @@ p {
   padding: 16px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(11, 14, 19, 0.92);
-  box-shadow:
-    0 16px 42px -28px rgba(0, 0, 0, 0.85),
-    0 2px 10px -6px rgba(0, 0, 0, 0.5);
+  background: rgba(10, 13, 18, 0.9);
 }
 
 .section-head {
@@ -488,6 +474,15 @@ p {
   letter-spacing: -0.01em;
   font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
   font-weight: 500;
+}
+
+.sidebar-brand .chip,
+.sidebar-session .chip,
+.sidebar-tab small,
+.modal-header .chip,
+.detail-header .chip,
+.section-head > .chip {
+  display: none;
 }
 
 .surface-copy {
@@ -566,7 +561,7 @@ p {
   padding: 12px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.015);
+  background: rgba(255, 255, 255, 0.01);
   color: inherit;
   text-align: left;
 }
@@ -577,7 +572,7 @@ button.workflow-row {
 
 button.workflow-row:hover {
   border-color: rgba(223, 232, 245, 0.14);
-  background: rgba(223, 232, 245, 0.03);
+  background: rgba(223, 232, 245, 0.02);
 }
 
 .workflow-create-row {
@@ -586,10 +581,8 @@ button.workflow-row:hover {
   gap: 10px;
   padding: 12px;
   border-radius: 8px;
-  border: 1px dashed rgba(223, 232, 245, 0.18);
-  background:
-    linear-gradient(180deg, rgba(223, 232, 245, 0.02), rgba(223, 232, 245, 0.01)),
-    rgba(255, 255, 255, 0.01);
+  border: 1px dashed rgba(223, 232, 245, 0.14);
+  background: rgba(255, 255, 255, 0.008);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -597,9 +590,7 @@ button.workflow-row:hover {
 
 .workflow-create-row:hover {
   border-color: rgba(223, 232, 245, 0.28);
-  background:
-    linear-gradient(180deg, rgba(223, 232, 245, 0.04), rgba(223, 232, 245, 0.015)),
-    rgba(255, 255, 255, 0.015);
+  background: rgba(223, 232, 245, 0.02);
 }
 
 .workflow-create-row-head {
@@ -781,7 +772,7 @@ button.workflow-row:hover {
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.012);
+  background: rgba(255, 255, 255, 0.01);
 }
 
 .dashboard-run-actions {
@@ -813,6 +804,7 @@ button.workflow-row:hover {
 
 .workflow-list-panel,
 .workflow-detail-panel {
+  min-width: 0;
   min-height: 0;
   align-content: start;
 }
@@ -897,6 +889,7 @@ button.workflow-row:hover {
 .detail-tab-panel {
   display: grid;
   gap: 14px;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -1525,9 +1518,10 @@ button.workflow-row:hover {
 }
 
 .checkbox-inline {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   gap: 8px;
+  min-width: 0;
   color: var(--muted);
   font-size: 12px;
 }
@@ -1536,6 +1530,12 @@ button.workflow-row:hover {
   width: 14px;
   height: 14px;
   accent-color: #9cb6dc;
+}
+
+.checkbox-inline span {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .modal-actions {
@@ -1568,14 +1568,17 @@ button.workflow-row:hover {
 .home-shell {
   position: relative;
   z-index: 1;
-  width: calc(100vw - 32px);
-  height: calc(100vh - 32px);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: calc(100dvh - 32px);
 }
 
 .app-layout {
   grid-template-columns: 1fr;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 14px;
+  min-width: 0;
   min-height: 100%;
   height: 100%;
 }
@@ -1583,11 +1586,9 @@ button.workflow-row:hover {
 .sidebar,
 .workspace {
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background: rgba(7, 10, 14, 0.62);
-  box-shadow:
-    0 18px 60px -34px rgba(0, 0, 0, 0.75),
-    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 11, 15, 0.94);
+  box-shadow: none;
 }
 
 .workspace {
@@ -1611,15 +1612,16 @@ button.workflow-row:hover {
 }
 
 .workflows-layout {
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   gap: 16px;
+  min-width: 0;
 }
 
 .workflow-detail-panel {
   min-height: 0;
   height: 100%;
   gap: 12px;
-  background: rgba(9, 12, 16, 0.94);
+  background: rgba(10, 13, 18, 0.9);
   border-color: rgba(255, 255, 255, 0.07);
 }
 
@@ -1629,6 +1631,7 @@ button.workflow-row:hover {
 
 .detail-tab-panel {
   gap: 14px;
+  min-height: 0;
 }
 
 .workflow-detail-panel.graph-mode .detail-header {
@@ -1644,6 +1647,169 @@ button.workflow-row:hover {
 
 .workflow-detail-panel.graph-mode .chip.subtle-chip {
   opacity: 0.7;
+}
+
+.workflow-detail-panel.graph-mode.has-start-panel {
+  gap: 10px;
+}
+
+.workflow-start-panel {
+  gap: 10px;
+  padding: 12px;
+  max-height: min(38vh, 360px);
+  overflow: auto;
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at 8% 14%, rgba(223, 232, 245, 0.045), transparent 34%),
+    rgba(255, 255, 255, 0.012);
+}
+
+.workflow-start-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.workflow-start-panel-title {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.workflow-start-panel-title h3 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.workflow-start-panel-title .surface-copy {
+  font-size: 12px;
+}
+
+.workflow-start-panel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.workflow-start-panel-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.workflow-start-input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  align-content: start;
+}
+
+.workflow-start-input-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.01);
+  align-content: start;
+}
+
+.workflow-start-input-card.wide {
+  grid-column: span 2;
+}
+
+.workflow-start-input-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.workflow-start-input-card-head h4 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.workflow-start-input-key {
+  margin-top: 2px;
+  color: var(--accent-dark);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.workflow-start-input-copy {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.workflow-start-file-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.workflow-start-file-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.workflow-start-file-list {
+  display: grid;
+  gap: 6px;
+}
+
+.workflow-start-file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.008);
+}
+
+.workflow-start-file-row > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.workflow-start-file-row strong {
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--accent);
+}
+
+.workflow-start-file-row span {
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--muted);
+}
+
+.workflow-start-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.workflow-start-panel-footer .hint,
+.workflow-start-panel-footer .error {
+  margin: 0;
+  min-width: 0;
 }
 
 .dag-shell.interactive {
@@ -1677,9 +1843,10 @@ button.workflow-row:hover {
 
 .graph-editor-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 272px;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 248px;
+  gap: 12px;
   align-items: start;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -1687,6 +1854,7 @@ button.workflow-row:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
   min-height: 0;
   padding: 0;
   border: 0;
@@ -1713,7 +1881,7 @@ button.workflow-row:hover {
 
 .graph-canvas-shell {
   min-height: 0;
-  height: clamp(640px, 80vh, 1100px);
+  height: clamp(360px, 52vh, 760px);
   padding: 0;
   gap: 0;
   border-radius: 14px;
@@ -1730,10 +1898,31 @@ button.workflow-row:hover {
   align-content: start;
   position: sticky;
   top: 0;
-  max-height: 100%;
-  overflow: auto;
+  min-width: 0;
+  max-height: min(100%, clamp(360px, 52vh, 760px));
+  overflow-y: auto;
+  overflow-x: hidden;
   background: rgba(255, 255, 255, 0.01);
   border-color: rgba(255, 255, 255, 0.05);
+}
+
+.graph-inspector-panel .surface-copy,
+.graph-inspector-panel .hint {
+  overflow-wrap: anywhere;
+}
+
+.graph-inspector-panel .field-group,
+.graph-inspector-panel .graph-connection-section,
+.graph-inspector-panel .graph-inspector-empty {
+  min-width: 0;
+}
+
+.workflow-detail-panel.graph-mode.has-start-panel .graph-canvas-shell {
+  height: clamp(300px, 42vh, 620px);
+}
+
+.workflow-detail-panel.graph-mode.has-start-panel .graph-inspector-panel {
+  max-height: min(100%, clamp(300px, 42vh, 620px));
 }
 
 .workflow-contract-section {
@@ -1843,6 +2032,7 @@ button.workflow-row:hover {
 .graph-inspector-stack {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .graph-node-meta {
@@ -1854,12 +2044,16 @@ button.workflow-row:hover {
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.008);
+  min-width: 0;
 }
 
 .graph-node-meta code {
   color: var(--accent-dark);
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .graph-connection-section {
@@ -1889,6 +2083,7 @@ button.workflow-row:hover {
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.008);
+  min-width: 0;
 }
 
 .graph-connection-card.compact {
@@ -1939,17 +2134,27 @@ button.workflow-row:hover {
 }
 
 .checkbox-row {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   gap: 6px;
   min-height: 36px;
+  width: 100%;
+  min-width: 0;
   padding: 0 2px;
   color: var(--text);
   font-size: 12px;
 }
 
 .checkbox-row input[type='checkbox'] {
+  flex: 0 0 auto;
+  margin-top: 2px;
   accent-color: var(--accent);
+}
+
+.checkbox-row span {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .handoff-field-row-foot {
@@ -2011,19 +2216,37 @@ button.workflow-row:hover {
 }
 
 .workflow-runs-workspace {
+  align-self: stretch;
+  height: 100%;
   min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 10px;
+  overflow: hidden;
 }
 
-.workflow-runs-tab-shell {
+.workflow-runs-monitor-shell {
   gap: 8px;
-}
-
-.workflow-runs-tabs {
-  align-self: flex-start;
+  padding: 12px;
 }
 
 .workflow-runs-tab-copy {
-  font-size: 13px;
+  font-size: 12px;
+}
+
+.workflow-runtime-layout.compact {
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.workflow-runtime-layout.compact.runs-monitor-layout {
+  height: 100%;
+  min-height: 0;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.workflow-runtime-layout.compact.runs-monitor-layout > * {
+  min-height: 0;
 }
 
 .live-run-layout {
@@ -2479,11 +2702,79 @@ button.deliverable-file-row:hover {
 }
 
 .workflow-run-detail {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.run-detail-body-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 14px;
+  align-items: stretch;
+  min-height: 0;
+  height: 100%;
+}
+
+.run-detail-main-stack {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  grid-template-rows: minmax(0, 0.95fr) minmax(0, 1fr) minmax(0, 1.15fr);
+  overflow: hidden;
+}
+
+.run-detail-main-stack > * {
+  min-height: 0;
+}
+
+.run-detail-right-rail {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  align-self: stretch;
+}
+
+.run-detail-right-rail-inner {
+  position: sticky;
+  top: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.run-detail-right-rail-inner > * {
   min-height: 0;
 }
 
 .run-detail-header {
   align-items: flex-start;
+}
+
+.run-status-story {
+  margin-top: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(121, 224, 164, 0.18);
+  background: rgba(121, 224, 164, 0.05);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.run-status-story-title {
+  margin: 0;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.run-status-story-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  color: rgba(223, 232, 245, 0.9);
+  font-size: 12px;
 }
 
 .run-detail-grid {
@@ -2561,7 +2852,8 @@ button.deliverable-file-row:hover {
 .run-log-list {
   display: grid;
   gap: 10px;
-  max-height: 720px;
+  min-height: 0;
+  height: 100%;
   overflow: auto;
   padding-right: 4px;
 }
@@ -2649,6 +2941,33 @@ button.deliverable-file-row:hover {
   line-height: 1.45;
 }
 
+.run-log-highlights {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  color: rgba(223, 232, 245, 0.84);
+  font-size: 12px;
+}
+
+.run-json-disclosure {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.008);
+  padding: 6px 8px;
+}
+
+.run-json-disclosure summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  user-select: none;
+}
+
+.run-json-disclosure[open] summary {
+  margin-bottom: 8px;
+}
+
 .run-log-payload {
   margin: 0;
   max-height: 260px;
@@ -2678,6 +2997,441 @@ button.deliverable-file-row:hover {
 .deliverable-preview {
   margin: 0;
   max-height: 180px;
+}
+
+.workspace-file-list {
+  display: grid;
+  gap: 8px;
+  max-height: 560px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.workspace-file-card {
+  gap: 8px;
+}
+
+.workspace-file-card-button {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.workspace-file-card-button:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.workspace-file-card-button.selected {
+  border-color: rgba(125, 176, 246, 0.32);
+  box-shadow: 0 0 0 1px rgba(125, 176, 246, 0.14) inset;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.008)),
+    radial-gradient(circle at top right, rgba(125, 176, 246, 0.08), transparent 55%);
+}
+
+.workspace-file-path {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.workspace-file-path code {
+  color: #b7d0ff;
+  overflow-wrap: anywhere;
+}
+
+.workspace-file-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.workspace-file-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.workspace-file-preview-panel {
+  margin-top: 10px;
+  gap: 8px;
+}
+
+.workspace-file-preview-code {
+  max-height: 340px;
+  overflow: auto;
+}
+
+.workspace-file-preview-image {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.01);
+  object-fit: contain;
+}
+
+.run-sandbox-grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+  height: 100%;
+}
+
+.run-debug-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.run-sandbox-panel {
+  min-height: 0;
+}
+
+.run-sandbox-grid > * {
+  min-height: 0;
+}
+
+.agent-debug-workbench-panel {
+  overflow: auto;
+  align-content: start;
+}
+
+.agent-swarm-list {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.agent-swarm-card {
+  width: 100%;
+  text-align: left;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.008)),
+    radial-gradient(circle at top right, rgba(121, 224, 164, 0.06), transparent 55%);
+  padding: 11px;
+  display: grid;
+  gap: 8px;
+}
+
+.agent-swarm-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.agent-swarm-card.selected {
+  border-color: rgba(125, 176, 246, 0.32);
+  box-shadow: 0 0 0 1px rgba(125, 176, 246, 0.14) inset;
+}
+
+.agent-swarm-card.running {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.008)),
+    radial-gradient(circle at top right, rgba(121, 224, 164, 0.1), transparent 55%);
+}
+
+.agent-swarm-card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.agent-swarm-title {
+  margin: 0;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.agent-swarm-meta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.agent-swarm-trace {
+  margin: 0;
+  color: rgba(223, 232, 245, 0.88);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.agent-swarm-tool {
+  margin: 0;
+  color: rgba(223, 232, 245, 0.82);
+  font-size: 12px;
+}
+
+.agent-swarm-tool code {
+  color: #b7d0ff;
+}
+
+.agent-swarm-files {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 3px;
+  color: rgba(223, 232, 245, 0.78);
+  font-size: 11px;
+}
+
+.run-activity-list {
+  display: grid;
+  gap: 10px;
+  max-height: 860px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.run-activity-card {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.01);
+  padding: 11px;
+  display: grid;
+  gap: 8px;
+}
+
+.run-activity-card.thinking {
+  background: rgba(121, 224, 164, 0.035);
+  border-color: rgba(121, 224, 164, 0.16);
+}
+
+.run-activity-card.tool-request {
+  background: rgba(125, 176, 246, 0.035);
+  border-color: rgba(125, 176, 246, 0.16);
+}
+
+.run-activity-card.handoff {
+  background: rgba(255, 208, 146, 0.03);
+  border-color: rgba(255, 208, 146, 0.14);
+}
+
+.run-activity-card.error {
+  background: rgba(255, 107, 107, 0.04);
+  border-color: rgba(255, 107, 107, 0.2);
+}
+
+.run-activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.run-activity-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.text-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.run-activity-node-link {
+  color: #b7d0ff;
+  text-decoration: underline;
+  text-decoration-color: rgba(183, 208, 255, 0.35);
+  text-underline-offset: 2px;
+}
+
+.run-activity-title {
+  margin: 0;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.run-activity-message {
+  margin: 0;
+  color: rgba(223, 232, 245, 0.92);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.run-activity-highlights {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: rgba(223, 232, 245, 0.84);
+}
+
+.run-activity-ref-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.run-activity-ref-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.015);
+  padding: 3px 8px;
+}
+
+.run-activity-ref-chip code {
+  color: rgba(223, 232, 245, 0.92);
+  font-size: 11px;
+}
+
+.run-activity-ref-chip small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.run-activity-code-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.run-code-preview-card {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.008);
+  padding: 6px 8px;
+}
+
+.run-code-preview-card summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.run-code-preview-card summary code {
+  color: rgba(223, 232, 245, 0.88);
+  font-size: 11px;
+}
+
+.run-code-preview-card[open] summary {
+  margin-bottom: 8px;
+}
+
+.run-activity-code {
+  margin: 0;
+  max-height: 260px;
+}
+
+.run-debug-sections {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+}
+
+.run-log-feed-panel {
+  min-height: 0;
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.run-outputs-panel {
+  min-height: 0;
+  overflow: auto;
+  align-content: start;
+}
+
+.run-workspace-files-panel {
+  min-height: 0;
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+}
+
+.run-workspace-files-panel .file-tree-root {
+  min-height: 0;
+  height: 100%;
+  max-height: none;
+}
+
+.structured-json-group {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.008);
+  padding: 6px 8px;
+}
+
+.structured-json-group + .structured-json-group {
+  margin-top: 6px;
+}
+
+.structured-json-group summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.structured-json-children {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.structured-json-row {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.structured-json-key {
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  word-break: break-word;
+}
+
+.structured-json-value {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.structured-json-leaf {
+  display: inline-block;
+  color: rgba(223, 232, 245, 0.92);
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.run-parsed-json {
+  margin-bottom: 8px;
 }
 
 button,
@@ -2720,6 +3474,67 @@ button:focus-visible,
 
   .run-detail-grid.lower {
     grid-template-columns: 1fr;
+  }
+
+  .run-sandbox-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .run-debug-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .run-detail-body-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+
+  .run-detail-right-rail-inner {
+    position: static;
+    top: auto;
+    height: auto;
+  }
+
+  .workflow-runs-workspace {
+    overflow: visible;
+  }
+
+  .workflow-runtime-layout.compact.runs-monitor-layout {
+    overflow: visible;
+  }
+
+  .workflow-run-detail {
+    height: auto;
+    grid-template-rows: none;
+    overflow: visible;
+  }
+
+  .run-detail-main-stack {
+    height: auto;
+    grid-template-rows: none;
+    overflow: visible;
+  }
+
+  .run-detail-right-rail {
+    height: auto;
+  }
+
+  .run-log-feed-panel,
+  .run-outputs-panel,
+  .run-workspace-files-panel,
+  .agent-debug-workbench-panel {
+    height: auto;
+  }
+
+  .run-log-list,
+  .agent-swarm-list {
+    height: auto;
+    max-height: 52vh;
+  }
+
+  .run-workspace-files-panel .file-tree-root {
+    height: auto;
   }
 
   .graph-editor-layout {
@@ -2775,8 +3590,9 @@ button:focus-visible,
   }
 
   .home-shell {
-    width: calc(100vw - 24px);
-    height: calc(100vh - 24px);
+    width: 100%;
+    max-width: 100%;
+    height: calc(100dvh - 24px);
   }
 
   .app-layout {
@@ -2807,6 +3623,11 @@ button:focus-visible,
     grid-template-columns: 1fr;
   }
 
+  .agent-swarm-card-head,
+  .structured-json-row {
+    grid-template-columns: 1fr;
+  }
+
   .run-monitor-row-side {
     justify-items: start;
   }
@@ -2818,6 +3639,26 @@ button:focus-visible,
   .detail-actions {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .workflow-start-panel-head,
+  .workflow-start-panel-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .workflow-start-panel-actions {
+    justify-content: flex-start;
+  }
+
+  .workflow-start-input-card.wide {
+    grid-column: auto;
+  }
+
+  .run-activity-head,
+  .run-code-preview-card summary {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .live-run-toolbar {
@@ -2858,7 +3699,8 @@ button:focus-visible,
   }
 
   .graph-canvas-shell {
-    min-height: clamp(460px, 62vh, 720px);
+    min-height: clamp(320px, 44vh, 520px);
+    height: clamp(320px, 44vh, 520px);
   }
 
   .edge-row,
@@ -2979,6 +3821,7 @@ button:focus-visible,
   .run-card-top,
   .node-run-chip,
   .run-log-head,
+  .run-activity-head,
   .deliverable-head,
   .workflow-contract-summary {
     flex-direction: column;
@@ -2996,12 +3839,467 @@ button:focus-visible,
   }
 
   .home-shell {
-    width: calc(100vw - 16px);
-    height: calc(100vh - 16px);
+    width: 100%;
+    max-width: 100%;
+    height: calc(100dvh - 16px);
   }
 
   .workspace-content {
     padding: 14px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Agent Debug Workbench – Thinking Timeline               */
+/* ─────────────────────────────────────────────────────── */
+
+.run-thinking-step {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.012);
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.run-thinking-step.thinking-tool {
+  border-color: rgba(125, 176, 246, 0.2);
+  background: rgba(125, 176, 246, 0.03);
+}
+
+.run-thinking-step.thinking-final {
+  border-color: rgba(121, 224, 164, 0.22);
+  background: rgba(121, 224, 164, 0.035);
+}
+
+.run-thinking-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.run-thinking-time {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.02em;
+}
+
+.run-thinking-note {
+  margin: 0;
+  color: rgba(223, 232, 245, 0.88);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.run-thinking-reason {
+  margin: 0;
+  color: rgba(223, 232, 245, 0.68);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.run-thinking-reason strong {
+  color: rgba(223, 232, 245, 0.82);
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Agent Debug Workbench – Tool Call Cards                  */
+/* ─────────────────────────────────────────────────────── */
+
+.run-tool-call-card {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.012);
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.run-tool-call-card.tool-success {
+  border-color: rgba(121, 224, 164, 0.18);
+  background: rgba(121, 224, 164, 0.025);
+}
+
+.run-tool-call-card.tool-error {
+  border-color: rgba(255, 107, 107, 0.22);
+  background: rgba(255, 107, 107, 0.03);
+}
+
+.run-tool-call-card.tool-pending {
+  border-color: rgba(255, 208, 146, 0.18);
+  background: rgba(255, 208, 146, 0.025);
+}
+
+.run-tool-call-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.run-tool-name {
+  color: #b7d0ff;
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.02em;
+}
+
+.run-tool-reason {
+  margin: 0;
+  color: rgba(223, 232, 245, 0.62);
+  font-size: 11.5px;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Agent Debug Workbench – Chip Variants                   */
+/* ─────────────────────────────────────────────────────── */
+
+.tool-chip {
+  color: #b7d0ff;
+  border-color: rgba(125, 176, 246, 0.25);
+  background: rgba(125, 176, 246, 0.1);
+}
+
+.success-chip {
+  color: #c6f5d7;
+  border-color: rgba(121, 224, 164, 0.25);
+  background: rgba(121, 224, 164, 0.1);
+}
+
+.error-chip {
+  color: #ffd1d1;
+  border-color: rgba(255, 107, 107, 0.3);
+  background: rgba(255, 107, 107, 0.1);
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Agent Debug Workbench – Workspace References             */
+/* ─────────────────────────────────────────────────────── */
+
+.workspace-ref-item {
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.01);
+  padding: 8px 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.workspace-ref-path {
+  color: #b7d0ff;
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Agent Debug Workbench – Handoff / Input Cards            */
+/* ─────────────────────────────────────────────────────── */
+
+.run-handoff-card {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 208, 146, 0.16);
+  background: rgba(255, 208, 146, 0.025);
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.run-handoff-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #ffd9ae;
+}
+
+.run-handoff-head strong {
+  color: #ffe4c4;
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Workspace Files Panel – File Operation Timeline          */
+/* ─────────────────────────────────────────────────────── */
+
+.workspace-ops-timeline {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.01);
+  padding: 10px 12px;
+  margin-bottom: 6px;
+}
+
+.workspace-op-item {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.008);
+  padding: 8px 10px;
+  display: grid;
+  gap: 4px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.workspace-op-item:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.workspace-op-item.selected {
+  border-color: rgba(125, 176, 246, 0.32);
+  background: rgba(125, 176, 246, 0.05);
+}
+
+.workspace-op-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workspace-op-head code {
+  color: #b7d0ff;
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* File Tree                                               */
+/* ─────────────────────────────────────────────────────── */
+
+.file-tree-root {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.file-tree-level {
+  display: grid;
+  gap: 1px;
+}
+
+.file-tree-dir-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.file-tree-dir-toggle:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.file-tree-icon {
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.file-tree-file-icon {
+  font-size: 13px;
+}
+
+.file-tree-dir-name {
+  color: #b7d0ff;
+  font-size: 12.5px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+}
+
+.file-tree-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.file-tree-file:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.file-tree-file-name {
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: rgba(223, 232, 245, 0.88);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* File Preview Modal                                      */
+/* ─────────────────────────────────────────────────────── */
+
+.file-preview-modal {
+  width: min(960px, 95vw);
+  max-height: 85vh;
+}
+
+.file-preview-modal-body {
+  overflow: auto;
+  min-height: 200px;
+  max-height: calc(85vh - 80px);
+}
+
+.file-preview-image-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+
+.file-preview-image-wrap img {
+  max-width: 100%;
+  max-height: 60vh;
+  border-radius: 6px;
+}
+
+.file-preview-code {
+  margin: 0;
+  padding: 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  overflow: auto;
+  max-height: none;
+  border-radius: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Rendered Markdown inside preview modal                  */
+/* ─────────────────────────────────────────────────────── */
+
+.file-preview-rendered-md {
+  padding: 20px 24px;
+  color: rgba(223, 232, 245, 0.92);
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: break-word;
+}
+
+.file-preview-rendered-md h1,
+.file-preview-rendered-md h2,
+.file-preview-rendered-md h3,
+.file-preview-rendered-md h4,
+.file-preview-rendered-md h5,
+.file-preview-rendered-md h6 {
+  margin: 1.2em 0 0.5em;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.file-preview-rendered-md h1 { font-size: 1.6em; letter-spacing: -0.02em; }
+.file-preview-rendered-md h2 { font-size: 1.35em; letter-spacing: -0.01em; }
+.file-preview-rendered-md h3 { font-size: 1.15em; }
+
+.file-preview-rendered-md p {
+  margin: 0.6em 0;
+}
+
+.file-preview-rendered-md ul,
+.file-preview-rendered-md ol {
+  margin: 0.5em 0;
+  padding-left: 1.8em;
+}
+
+.file-preview-rendered-md li {
+  margin: 0.2em 0;
+}
+
+.file-preview-rendered-md blockquote {
+  margin: 0.6em 0;
+  padding: 0.4em 1em;
+  border-left: 3px solid rgba(125, 176, 246, 0.4);
+  color: rgba(223, 232, 245, 0.7);
+  font-style: italic;
+}
+
+.file-preview-rendered-md hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 1.2em 0;
+}
+
+.file-preview-rendered-md a {
+  color: #7db0f6;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.file-preview-rendered-md .md-inline-code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.9em;
+  font-family: 'IBM Plex Mono', monospace;
+  color: #d2c0ff;
+}
+
+.file-preview-rendered-md .md-code-block {
+  margin: 0.8em 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: auto;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.file-preview-rendered-md .md-code-block code {
+  font-family: 'IBM Plex Mono', monospace;
+  color: rgba(223, 232, 245, 0.9);
+}
+
+.file-preview-rendered-md strong {
+  color: var(--text);
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Responsive – new components                             */
+/* ─────────────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .run-thinking-head,
+  .run-tool-call-head,
+  .run-handoff-head,
+  .workspace-op-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .run-thinking-time {
+    margin-left: 0;
   }
 }
 
@@ -3012,6 +4310,10 @@ button:focus-visible,
   .workflow-row,
   .workflow-row-button,
   .icon-button {
+    transition: none;
+  }
+
+  .workspace-op-item {
     transition: none;
   }
 }

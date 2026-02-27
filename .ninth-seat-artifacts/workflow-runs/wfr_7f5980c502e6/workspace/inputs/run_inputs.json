@@ -1,0 +1,16 @@
+{
+  "app_request": "build me simple calculator app",
+  "target_platforms": "",
+  "preferred_technologies": "",
+  "user_roles": "",
+  "ui_guidelines": "",
+  "reference_documents": "",
+  "workflowTemplateInputs": [
+    "app_request",
+    "target_platforms",
+    "preferred_technologies",
+    "user_roles",
+    "ui_guidelines",
+    "reference_documents"
+  ]
+}

@@ -1,0 +1,38 @@
+0 verbose cli /Users/natejly/.nvm/versions/node/v20.16.0/bin/node /Users/natejly/.nvm/versions/node/v20.16.0/bin/npm
+1 info using npm@10.8.1
+2 info using node@v20.16.0
+3 silly config load:file:/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace/.npmrc
+5 silly config load:file:/Users/natejly/.nvm/versions/node/v20.16.0/etc/npmrc
+6 verbose title npm install
+7 verbose argv "install"
+8 verbose logfile logs-max:10 dir:/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace/.npm/_logs/2026-02-24T16_25_50_594Z-
+9 verbose logfile /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace/.npm/_logs/2026-02-24T16_25_50_594Z-debug-0.log
+10 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+11 silly logfile start cleaning logs, removing 1 files
+12 silly logfile done cleaning log files
+13 silly idealTree buildDeps
+14 silly reify moves {}
+15 verbose stack Error: Could not read package.json: Error: ENOENT: no such file or directory, open '/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace/package.json'
+15 verbose stack     at async open (node:internal/fs/promises:639:25)
+15 verbose stack     at async readFile (node:internal/fs/promises:1249:14)
+15 verbose stack     at async PackageJson.load (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/@npmcli/package-json/lib/index.js:129:31)
+15 verbose stack     at async PackageJson.normalize (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/@npmcli/package-json/lib/index.js:115:5)
+15 verbose stack     at async runScript (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/node_modules/@npmcli/run-script/lib/run-script.js:11:28)
+15 verbose stack     at async Install.exec (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/lib/commands/install.js:163:9)
+15 verbose stack     at async Npm.exec (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/lib/npm.js:207:9)
+15 verbose stack     at async module.exports (/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/lib/cli/entry.js:74:5)
+16 error code ENOENT
+17 error syscall open
+18 error path /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace/package.json
+19 error errno -2
+20 error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace/package.json'
+21 error enoent This is related to npm not being able to find a file.
+21 error enoent
+22 verbose cwd /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace
+23 verbose os Darwin 25.2.0
+24 verbose node v20.16.0
+25 verbose npm  v10.8.1
+26 verbose exit -2
+27 verbose code -2
+28 error A complete log of this run can be found in: /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_e21acebcb82e/workspace/.npm/_logs/2026-02-24T16_25_50_594Z-debug-0.log

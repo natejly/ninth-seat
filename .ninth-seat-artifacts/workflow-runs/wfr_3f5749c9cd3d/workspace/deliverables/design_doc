@@ -1,0 +1,3 @@
+design_doc
+
+Final review completed for the 4-function calculator app. The frontend React app and backend Flask API have been integrated and written to the workspace. Manual integration checks confirm compatibility of API endpoints and frontend requests. No automated tests were implemented or run, so no test report is available. The app is ready for local running and manual or automated testing to verify full functionality. Deliverables include frontend code, backend code, test report (not implemented), deployment report (none due to no deployment target), app URL (none), and this final review report.

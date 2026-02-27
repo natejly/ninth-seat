@@ -1,0 +1,44 @@
+0 verbose cli /Users/natejly/.nvm/versions/node/v20.16.0/bin/node /Users/natejly/.nvm/versions/node/v20.16.0/bin/npm
+1 info using npm@10.8.1
+2 info using node@v20.16.0
+3 silly config load:file:/Users/natejly/.nvm/versions/node/v20.16.0/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_b07debf73b7e/workspace/.npmrc
+5 silly config load:file:/Users/natejly/.nvm/versions/node/v20.16.0/etc/npmrc
+6 verbose title npm create vite@latest calculator --template react-ts
+7 verbose argv "create" "vite@latest" "calculator" "--" "--template" "react-ts"
+8 verbose logfile logs-max:10 dir:/Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_b07debf73b7e/workspace/.npm/_logs/2026-02-24T15_35_24_226Z-
+9 verbose logfile /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_b07debf73b7e/workspace/.npm/_logs/2026-02-24T15_35_24_226Z-debug-0.log
+10 silly logfile done cleaning log files
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 http fetch GET 200 https://registry.npmjs.org/create-vite 1264ms (cache miss)
+13 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+14 warn exec The following package was not found and will be installed: create-vite@8.3.0
+15 silly idealTree buildDeps
+16 silly fetch manifest create-vite@8.3.0
+17 silly packumentCache full:https://registry.npmjs.org/create-vite cache-miss
+18 http fetch GET 200 https://registry.npmjs.org/npm 1333ms
+19 http fetch GET 200 https://registry.npmjs.org/create-vite 217ms (cache miss)
+20 silly packumentCache full:https://registry.npmjs.org/create-vite set size:undefined disposed:false
+21 silly placeDep ROOT create-vite@8.3.0 OK for:  want: 8.3.0
+22 warn EBADENGINE Unsupported engine {
+22 warn EBADENGINE   package: 'create-vite@8.3.0',
+22 warn EBADENGINE   required: { node: '^20.19.0 || >=22.12.0' },
+22 warn EBADENGINE   current: { node: 'v20.16.0', npm: '10.8.1' }
+22 warn EBADENGINE }
+23 silly reify moves {}
+24 silly audit bulk request { 'create-vite': [ '8.3.0' ] }
+25 silly tarball no local data for create-vite@https://registry.npmjs.org/create-vite/-/create-vite-8.3.0.tgz. Extracting by manifest.
+26 http fetch GET 200 https://registry.npmjs.org/create-vite/-/create-vite-8.3.0.tgz 84ms (cache miss)
+27 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 116ms
+28 silly audit report {}
+29 verbose cwd /Users/natejly/ninth-seat/.ninth-seat-artifacts/workflow-runs/wfr_b07debf73b7e/workspace
+30 verbose os Darwin 25.2.0
+31 verbose node v20.16.0
+32 verbose npm  v10.8.1
+33 notice
+33 notice New major version of npm available! 10.8.1 -> 11.10.1
+33 notice Changelog: https://github.com/npm/cli/releases/tag/v11.10.1
+33 notice To update run: npm install -g npm@11.10.1
+33 notice  { force: true, [Symbol(proc-log.meta)]: true }
+34 verbose exit 0
+35 info ok
